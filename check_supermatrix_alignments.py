@@ -2,7 +2,7 @@
 #
 # check_supermatrix_alignments.py created 2017-03-13
 
-'''check_supermatrix_alignments.py v1.0 2017-03-13
+'''check_supermatrix_alignments.py v1.0 2017-03-27
 tool to quickly check for abnormal sequences in fasta alignments
 
 checknogalignments.py -a matrix.phy -p partitions.txt
@@ -51,7 +51,7 @@ def check_alignments(fullalignment, alignformat, partitions):
 				gapdict[species] += 1
 			elif lettercounts["-"] >= seqlen/2:
 				halfgapdict[species] += 1
-	print >> sys.stderr, "# split alignment by partitions", time.asctime()
+	print >> sys.stderr, "# split {} taxa alignment by partitions".format(len(gapdict)), time.asctime()
 	return gapdict, halfgapdict
 
 def main(argv, wayout):
