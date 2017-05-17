@@ -2,7 +2,7 @@
 # add_taxa_to_align.py v1.0 created 2016-12-08
 
 '''
-add_taxa_to_align.py v1.0 2017-03-13
+add_taxa_to_align.py v1.1 2017-05-17
     add new taxa to an existing untrimmed alignment
 
     to add proteins from species1 and species2 to alignments prot1 and prot2:
@@ -32,11 +32,6 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio import AlignIO
 
-ALIGNER = os.path.expanduser("~/mafft-7.182-with-extensions/bin/mafft-linsi")
-HMMBUILD = os.path.expanduser("~/hmmer-3.1b1-linux-intel-x86_64/binaries/hmmbuild")
-HMMSEARCH = os.path.expanduser("~/hmmer-3.1b1-linux-intel-x86_64/binaries/hmmsearch")
-FASTTREEMP = os.path.expanduser("~/FastTree/FastTreeMP")
-
 def get_partitions(partitionfile, errorlog):
 	'''read comma-delimited partition information and return a list of tuples'''
 	partitions = [] # list of tuples of intervals
@@ -63,7 +58,7 @@ def make_alignments(fullalignment, alignformat, partitions, partitiondir, errorl
 	print >> errorlog, "# split alignment by partitions", time.asctime()
 	return splitalignments
 
-def run_hmmbuild(alignmentfile, errorlog):
+def run_hmmbuild(HMMBUILD, alignmentfile, errorlog):
 	'''generate HMM profile from multiple sequence alignment and return HMM filename'''
 	hmm_output = "{}.hmm".format(os.path.splitext(alignmentfile)[0] )
 	hmmbuild_args = [HMMBUILD, hmm_output, alignmentfile]
@@ -75,7 +70,7 @@ def run_hmmbuild(alignmentfile, errorlog):
 	else:
 		raise OSError("Cannot find expected output file {}".format(hmm_output) )
 
-def run_hmmsearch(hmmprofile, fastafile, threadcount, hmmlog, hmmdir, errorlog):
+def run_hmmsearch(HMMSEARCH, hmmprofile, fastafile, threadcount, hmmlog, hmmdir, errorlog):
 	'''search fasta format proteins with HMM profile and return formatted-table filename'''
 	hmmtbl_output = os.path.join(hmmdir, os.path.basename("{}_{}.tab".format(os.path.splitext(fastafile)[0], os.path.splitext(os.path.basename(hmmprofile))[0] ) ) )
 	hmmsearch_args = [HMMSEARCH,"--cpu", str(threadcount), "--tblout", hmmtbl_output, hmmprofile, fastafile]
@@ -115,7 +110,7 @@ def hmmtable_to_seqids(hmmtable, evaluecutoff, scorecutoff=0.5):
 			seqids_to_keep.append(targetname)
 	return seqids_to_keep
 
-def collect_sequences(unalignednewtaxa, alignment, hitlist, sequencedict, lengthcutoff, speciesnames, maxhits,  dosupermatrix, verbose=False):
+def collect_sequences(unalignednewtaxa, alignment, hitlist, sequencedict, lengthcutoff, speciesnames, maxhits, dosupermatrix, notrim, verbose=False):
 	'''write sequences from old alignment and new hits to file'''
 	sizelist = []
 	with open(unalignednewtaxa,'w') as notaln:
@@ -124,7 +119,8 @@ def collect_sequences(unalignednewtaxa, alignment, hitlist, sequencedict, length
 			degappedseq = Seq(gappedseq.replace("-","").replace("X",""))
 			seqrec.seq = degappedseq
 			sizelist.append(len(degappedseq))
-			notaln.write( seqrec.format("fasta") )
+			if notrim:
+				notaln.write( seqrec.format("fasta") )
 		median = sorted(sizelist)[len(sizelist)/2]
 		for i,hits in enumerate(hitlist):
 			writeout = 0
@@ -144,10 +140,10 @@ def collect_sequences(unalignednewtaxa, alignment, hitlist, sequencedict, length
 					print >> sys.stderr, "NO HITS FOR {} IN {}".format(speciesnames[i], alignment)
 	# no return
 
-def run_mafft(rawseqsfile, errorlog):
+def run_mafft(MAFFT, rawseqsfile, errorlog):
 	'''generate multiple sequence alignment from fasta and return MSA filename'''
 	aln_output = "{}.aln".format(os.path.splitext(rawseqsfile)[0] )
-	aligner_args = [ALIGNER, "--quiet", rawseqsfile]
+	aligner_args = [MAFFT, "--auto", "--quiet", rawseqsfile]
 	print >> errorlog, "{}\n{}".format(time.asctime(), " ".join(aligner_args) )
 	with open(aln_output, 'w') as msa:
 		subprocess.call(aligner_args, stdout=msa)
@@ -157,7 +153,20 @@ def run_mafft(rawseqsfile, errorlog):
 	else:
 		raise OSError("Cannot find expected output file {}".format(aln_output) )
 
-def run_tree(alignfile, errorlog):
+def run_mafft_addlong(MAFFT, oldalignment, rawseqsfile, errorlog):
+	'''generate new MSA from fasta and old MSA and return MSA filename'''
+	aln_output = "{}.aln".format(os.path.splitext(rawseqsfile)[0] )
+	aligner_args = [MAFFT, "--quiet", "--keeplength", "--auto", "--addlong", rawseqsfile, oldalignment]
+	print >> errorlog, "{}\n{}".format(time.asctime(), " ".join(aligner_args) )
+	with open(aln_output, 'w') as msa:
+		subprocess.call(aligner_args, stdout=msa)
+	print >> errorlog, "# alignment of {} completed".format(aln_output), time.asctime()
+	if os.path.isfile(aln_output):
+		return aln_output
+	else:
+		raise OSError("Cannot find expected output file {}".format(aln_output) )
+
+def run_tree(FASTTREEMP, alignfile, errorlog):
 	'''generate tree from alignment'''
 	tree_output = "{}.tree".format(os.path.splitext(alignfile)[0] )
 	fasttree_args = [FASTTREEMP, "-quiet", alignfile]
@@ -182,12 +191,21 @@ def main(argv, wayout, errorlog):
 	parser.add_argument('-l','--length', type=float, default=0.5, help="minimum length cutoff compared to median [0.5]")
 	parser.add_argument('-m','--max-hits', type=int, default=1, help="max number of allowed protein hits [1]")
 	parser.add_argument('-p','--processors', type=int, default=1, help="number of processors [1]")
-	parser.add_argument('-s','--hmmsearch', default=None, help="optional filename for hmmsearch output")
-	parser.add_argument('-S','--hmm-dir', default="hmmsearch", help="temporary directory for hmm hits [./hmmsearch]")
+	parser.add_argument('-r','--no-trim', action="store_true", help="do not trim to original alignment in mafft")
+	parser.add_argument('-s','--hmm-results', default=None, help="optional filename for hmmsearch output")
+	parser.add_argument('-S','--hmm-dir', default="hmm_hits", help="temporary directory for hmm hits [./hmm_hits]")
 	parser.add_argument('-t','--taxa', nargs="*", help="new taxa as fasta files of proteins (such as multiple translated transcriptomes) or directory")
 	parser.add_argument('-T','--taxa-names', nargs="*", help="optional species names for supermatrix (can contain underscores, no spaces)")
 	parser.add_argument('-U','--supermatrix', help="name for optional supermatrix output")
+	parser.add_argument('--mafft', default=os.path.expanduser("~/mafft-7.182-with-extensions/bin/mafft"), help="path to mafft binary")
+	parser.add_argument('--hmmbin', default=os.path.expanduser("~/hmmer-3.1b1-linux-intel-x86_64/binaries/"), help="path to hmm binaries, should be a directory containing hmmbuild and hmmsearch")
+	parser.add_argument('--fasttree', default=os.path.expanduser("~/FastTree/FastTreeMP"), help="path to fasttree binary")
 	args = parser.parse_args(argv)
+
+	ALIGNER = os.path.abspath(args.mafft)
+	HMMBUILD = os.path.join(args.hmmbin, "hmmbuild")
+	HMMSEARCH = os.path.join(args.hmmbin, "hmmsearch")
+	FASTTREEMP = os.path.abspath(args.fasttree)
 
 	### PROTEIN FILES FOR NEW TAXA
 	if os.path.isdir(args.taxa[0]):
@@ -254,14 +272,17 @@ def main(argv, wayout, errorlog):
 	runningsum = 0
 	for alignment in alignfiles:
 		seqids_to_add = [] # build list of lists by species
-		hmmprofile = run_hmmbuild(alignment, errorlog)
+		hmmprofile = run_hmmbuild(HMMBUILD, alignment, errorlog)
 		for newspeciesfile in newtaxafiles:
-			hmmtableout = run_hmmsearch(hmmprofile, newspeciesfile, args.processors, args.hmmsearch, args.hmm_dir, errorlog)
+			hmmtableout = run_hmmsearch(HMMSEARCH, hmmprofile, newspeciesfile, args.processors, args.hmm_results, args.hmm_dir, errorlog)
 			seqids_to_add.append(hmmtable_to_seqids(hmmtableout, args.evalue))
 		nt_unaligned = os.path.join(new_aln_dir, "{}.fasta".format(os.path.splitext(os.path.basename(alignment))[0] ) )
 		speciesnames = args.taxa_names if args.taxa_names else [os.path.basename(newspeciesfile) for f in newtaxafiles]
-		collect_sequences(nt_unaligned, alignment, seqids_to_add, seqdict, args.length, speciesnames, args.max_hits, args.supermatrix)
-		nt_aligned = run_mafft(nt_unaligned, errorlog)
+		collect_sequences(nt_unaligned, alignment, seqids_to_add, seqdict, args.length, speciesnames, args.max_hits, args.supermatrix, args.no_trim)
+		if args.no_trim: # use original method, which allows gaps from new sequences
+			nt_aligned = run_mafft(ALIGNER, nt_unaligned, errorlog)
+		else: # use --keeplength in mafft
+			nt_aligned = run_mafft_addlong(ALIGNER, alignment, nt_unaligned, errorlog)
 
 		# generate supermatrix from alignments
 		newaligned = AlignIO.read(nt_aligned, "fasta")
@@ -272,7 +293,7 @@ def main(argv, wayout, errorlog):
 			supermatrix = newaligned
 		else:
 			supermatrix += newaligned
-		nt_tree = run_tree(nt_aligned, errorlog)
+		nt_tree = run_tree(FASTTREEMP, nt_aligned, errorlog)
 
 	### BUILD SUPERMATRIX
 	if args.supermatrix:
