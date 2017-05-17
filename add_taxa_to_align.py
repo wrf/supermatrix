@@ -197,15 +197,15 @@ def main(argv, wayout, errorlog):
 	parser.add_argument('-t','--taxa', nargs="*", help="new taxa as fasta files of proteins (such as multiple translated transcriptomes) or directory")
 	parser.add_argument('-T','--taxa-names', nargs="*", help="optional species names for supermatrix (can contain underscores, no spaces)")
 	parser.add_argument('-U','--supermatrix', help="name for optional supermatrix output")
-	parser.add_argument('--mafft', default=os.path.expanduser("~/mafft-7.182-with-extensions/bin/mafft"), help="path to mafft binary")
-	parser.add_argument('--hmmbin', default=os.path.expanduser("~/hmmer-3.1b1-linux-intel-x86_64/binaries/"), help="path to hmm binaries, should be a directory containing hmmbuild and hmmsearch")
-	parser.add_argument('--fasttree', default=os.path.expanduser("~/FastTree/FastTreeMP"), help="path to fasttree binary")
+	parser.add_argument('--mafft', default="mafft", help="path to mafft binary [default is in PATH]")
+	parser.add_argument('--hmmbin', default="", help="path to hmm binaries, should be a directory containing hmmbuild and hmmsearch [default is ./]")
+	parser.add_argument('--fasttree', default="FastTreeMP", help="path to fasttree binary [default is in PATH]")
 	args = parser.parse_args(argv)
 
-	ALIGNER = os.path.abspath(args.mafft)
-	HMMBUILD = os.path.join(args.hmmbin, "hmmbuild")
-	HMMSEARCH = os.path.join(args.hmmbin, "hmmsearch")
-	FASTTREEMP = os.path.abspath(args.fasttree)
+	ALIGNER = os.path.expanduser(args.mafft)
+	HMMBUILD = os.path.expanduser(os.path.join(args.hmmbin, "hmmbuild"))
+	HMMSEARCH = os.path.expanduser(os.path.join(args.hmmbin, "hmmsearch"))
+	FASTTREEMP = os.path.expanduser(args.fasttree)
 
 	### PROTEIN FILES FOR NEW TAXA
 	if os.path.isdir(args.taxa[0]):

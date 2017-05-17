@@ -15,9 +15,9 @@ Script to add new taxa to an existing protein supermatrix alignment. Proteins fr
 
 Requires [BioPython](http://biopython.org/wiki/Download), [hmmsearch and hmmbuild](http://hmmer.org/), and [mafft v7.3.10](http://mafft.cbrc.jp/alignment/software/source.html), though could be modified to use any aligner. Older versions fo mafft are compatible if using the `-r` option  (current script requires an option in v7.3), which skips the mafft alignment-trimming step.
 
-Specify the PATHs of the programs with the options `--mafft`, `--hmmbin`, and `--fasttree`.
+Binaries are assumed to be in the user's PATH. This can be changed with the options `--mafft`, `--hmmbin`, and `--fasttree`. Both `--mafft` and `--fasttree` should point to binaries, but `--hmmbin` points to a folder containing both hmmsearch and hmmbuild.
 
-`add_taxa_to_align.py -a philippe2009_FullAlignment.phy -i philippe2009_partitions.txt -t ~/genomes/apis_mellifera/amel_OGSv3.2_pep.fa -e 1e-20 -T Apis_mellifera -f phylip-relaxed -U philippe2009_w_amel.aln --mafft ~/mafft-7.3/bin/mafft`
+`add_taxa_to_align.py -a philippe2009_FullAlignment.phy -i philippe2009_partitions.txt -t ~/genomes/apis_mellifera/amel_OGSv3.2_pep.fa -e 1e-20 -T Apis_mellifera -f phylip-relaxed -U philippe2009_w_amel.aln --mafft ~/programs/mafft --hmmbin ~/programs/`
 
 # test alignments #
 * [Philippe et al 2009](https://www.sciencedirect.com/science/article/pii/S0960982209008057) dataset of 128 genes and 30k positions
