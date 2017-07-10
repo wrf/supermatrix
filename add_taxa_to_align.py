@@ -2,7 +2,7 @@
 # add_taxa_to_align.py v1.0 created 2016-12-08
 
 '''
-add_taxa_to_align.py v1.1 2017-05-17
+add_taxa_to_align.py v1.2 2017-07-10
     add new taxa to an existing untrimmed alignment
 
     to add proteins from species1 and species2 to alignments prot1 and prot2:
@@ -20,6 +20,10 @@ add_taxa_to_align.py -a *.aln -t new_transcriptomes/
 
     partition file is comma-delimited text, as single or multiple lines
 1:136,137:301,...
+
+    no e-value threshold is set for hmmsearch, though results are filtered
+    e-value cutoff can be determined automatically (default)
+    or set manually with option -e
 '''
 
 import sys
@@ -110,18 +114,58 @@ def hmmtable_to_seqids(hmmtable, evaluecutoff, scorecutoff=0.5):
 			seqids_to_keep.append(targetname)
 	return seqids_to_keep
 
-def collect_sequences(unalignednewtaxa, alignment, hitlist, sequencedict, lengthcutoff, speciesnames, maxhits, dosupermatrix, notrim, verbose=False):
-	'''write sequences from old alignment and new hits to file'''
+def get_evalue_from_hmm(HMMSEARCH, hmmprofile, alignment, threadcount, hmmevaluedir, errorlog, correction=1e10):
+	'''get dynamic evalue from alignment and hmm'''
+	fasta_unaligned = os.path.join( hmmevaluedir, "{}_no_gaps.fasta".format(os.path.splitext(os.path.basename(alignment))[0] ) )
+	unalign_sequences(fasta_unaligned, alignment, notrim=True, calculatemedian=False)
+	hmmtbl_output = os.path.join( hmmevaluedir, os.path.basename( "{}_self_hmm.tab".format( os.path.splitext(alignment)[0] ) ) )
+	hmmsearch_args = [HMMSEARCH,"--cpu", str(threadcount), "--tblout", hmmtbl_output, hmmprofile, fasta_unaligned]
+	print >> errorlog, "{}\n{}".format(time.asctime(), " ".join(hmmsearch_args) )
+	DEVNULL = open(os.devnull, 'w')
+	subprocess.call(hmmsearch_args, stdout=DEVNULL)
+	print >> errorlog, "# self-hmmsearch completed", time.asctime()
+	if os.path.isfile(hmmtbl_output):
+		maxevalue = 0.0
+		for line in open(hmmtbl_output, 'r').readlines():
+			line = line.strip()
+			if not line or line[0]=="#": # skip comment lines
+				continue # also catch for empty line, which would cause IndexError
+			lsplits = line.split(None,18)
+			targetname = lsplits[0]
+			evalue = float(lsplits[4])
+			if evalue > maxevalue:
+				maxevalue = evalue
+		if maxevalue==0.0: # if all evalues are 0.0, then set to 1e-300
+			maxevalue = 1e-300
+		else:
+			maxevalue = maxevalue / correction # correct by set margin of error
+		print >> errorlog, "# calculated e-value for {} as {:.3e}".format(alignment, maxevalue), time.asctime()
+		return maxevalue
+	else:
+		raise OSError("Cannot find expected output file {}".format(hmmtbl_output) )
+
+def unalign_sequences(unalignedtaxa, alignment, notrim, calculatemedian):
+	'''remove gaps from alignments, and possibly return median ungapped length'''
 	sizelist = []
-	with open(unalignednewtaxa,'w') as notaln:
+	with open(unalignedtaxa,'w') as notaln:
 		for seqrec in SeqIO.parse(alignment,"fasta"):
 			gappedseq = str(seqrec.seq)
 			degappedseq = Seq(gappedseq.replace("-","").replace("X",""))
 			seqrec.seq = degappedseq
-			sizelist.append(len(degappedseq))
+			if calculatemedian:
+				sizelist.append(len(degappedseq))
 			if notrim:
 				notaln.write( seqrec.format("fasta") )
+	if calculatemedian:
 		median = sorted(sizelist)[len(sizelist)/2]
+		return median
+	else: # essentially void, just generates unaligned fasta file
+		return None
+
+def collect_sequences(unalignednewtaxa, alignment, hitlist, sequencedict, lengthcutoff, speciesnames, maxhits, dosupermatrix, notrim, verbose=False):
+	'''write sequences from old alignment and new hits to file'''
+	median = unalign_sequences(unalignednewtaxa, alignment, notrim, calculatemedian=True)
+	with open(unalignednewtaxa,'a') as notaln:
 		for i,hits in enumerate(hitlist):
 			writeout = 0
 			for seqid in hits:
@@ -184,7 +228,8 @@ def main(argv, wayout, errorlog):
 	parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description=__doc__)
 	parser.add_argument('-a','--alignments', nargs="*", help="alignment files or directory")
 	parser.add_argument('-d','--directory', default="./new_taxa", help="directory for new alignments [autonamed]")
-	parser.add_argument('-e','--evalue', type=float, default=1e-20, help="Evalue cutoff for hmmsearch [0.01]")
+	parser.add_argument('-e','--evalue', help="Evalue cutoff for hmmsearch [auto]")
+	parser.add_argument('-E','--hmm-evalue-dir', default="hmm_vs_self", help="temporary directory for hmm self-search [./hmm_vs_self]")
 	parser.add_argument('-f','--format', default="fasta", help="alignment format [fasta]")
 	parser.add_argument('-i','--partition', help="optional partition file for splitting large alignments")
 	parser.add_argument('-I','--partition-dir', default="partitions", help="temporary directory for partitioned alignments [./partitions]")
@@ -218,7 +263,7 @@ def main(argv, wayout, errorlog):
 		raise OSError("ERROR: Unknown new protein files, exiting")
 
 	if args.taxa_names and len(args.taxa_names)!=len(args.taxa):
-		raise ValueError("ERROR: number of taxa does not match number of files, exiting")
+		raise ValueError("ERROR: number of taxa names does not match number of files, exiting")
 
 	### SINGLE PARTITIONED ALIGNMENT TO BE EXTENDED
 	if args.partition: # if partitioning, do this first
@@ -266,6 +311,13 @@ def main(argv, wayout, errorlog):
 		else:
 			os.mkdir(args.hmm_dir)
 
+	### DIRECTORY FOR HMM SELF SEARCH ###
+	if not os.path.isdir(args.hmm_evalue_dir):
+		if os.path.isfile(args.hmm_evalue_dir):
+			raise OSError("ERROR: Cannot create directory {}, exiting".format(args.hmm_evalue_dir) )
+		else:
+			os.mkdir(args.hmm_evalue_dir)
+
 	### MAIN LOOP
 	supermatrix = None
 	partitionlist = [] # empty list for new partition file
@@ -273,9 +325,10 @@ def main(argv, wayout, errorlog):
 	for alignment in alignfiles:
 		seqids_to_add = [] # build list of lists by species
 		hmmprofile = run_hmmbuild(HMMBUILD, alignment, errorlog)
+		filtered_evalue = float(args.evalue) if args.evalue else get_evalue_from_hmm(HMMSEARCH, hmmprofile, alignment, args.processors, args.hmm_evalue_dir, errorlog)
 		for newspeciesfile in newtaxafiles:
 			hmmtableout = run_hmmsearch(HMMSEARCH, hmmprofile, newspeciesfile, args.processors, args.hmm_results, args.hmm_dir, errorlog)
-			seqids_to_add.append(hmmtable_to_seqids(hmmtableout, args.evalue))
+			seqids_to_add.append(hmmtable_to_seqids(hmmtableout, filtered_evalue))
 		nt_unaligned = os.path.join(new_aln_dir, "{}.fasta".format(os.path.splitext(os.path.basename(alignment))[0] ) )
 		speciesnames = args.taxa_names if args.taxa_names else [os.path.basename(newspeciesfile) for f in newtaxafiles]
 		collect_sequences(nt_unaligned, alignment, seqids_to_add, seqdict, args.length, speciesnames, args.max_hits, args.supermatrix, args.no_trim)
