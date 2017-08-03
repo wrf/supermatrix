@@ -68,6 +68,10 @@ mtext("Gene partitions", 1, line=4, cex=1.3)
 mtext(rev(row.names(occmatrix)),side=2,at=c(1:taxa),las=1, cex=0.9, col=taxacolors)
 mtext(sub("X","",colnames(occmatrix)),side=1,at=c(1:genes),las=2, cex=0.7, col=genecolors)
 
+# turn on XPD to allow drawing outside of normal frame
+par(xpd=TRUE)
+legend(-24,-1, legend=c("Absent","Incomplete","Present"), pch=22, pt.bg=occupancycolors, cex=1.1)
+
 dev.off()
 
 #
