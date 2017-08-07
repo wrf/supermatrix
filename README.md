@@ -1,16 +1,23 @@
 # supermatrix #
 scripts to add new proteins to alignment using hmms, and simple diagnostics/visualizations
 
-## add_taxa_to_align ##
-Script to add new taxa to an existing protein supermatrix alignment. Proteins from new taxa are untrimmed, though a trimming step may be implemented. Input alignments could be in a number of formats, as a supermatrix with a separate partition file, or individual alignments as separate files. Multiple new taxa can be added with `-t`, as space-separate protein files (could be gene models or translated from transcriptomes). By default, only the single best hit is taken (changed with `-m`), and is renamed to the corresponding species given in `-T`. Species names from `-T` and files from `-t` must be in the same order. Several folders with many intermediate files are generated (`-d`, `-I`, and `-S`), in case it is needed to re-examine later. For alignment format (`-f`), most cases *phylip* format is actually *phylip-relaxed*.
+## add_taxa_to_align.py ##
+Script to add new taxa to an existing protein supermatrix alignment. Proteins from new taxa are untrimmed, though a trimming step may be implemented. Input alignments could be in a number of formats, as a supermatrix with a separate partition file, or individual alignments as separate files.
+* Multiple new taxa can be added with `-t`, as space-separate protein files (could be gene models or translated from transcriptomes). 
+* By default, only the single best hit is taken (changed with `-m`), and is renamed to the corresponding species given in `-T`. 
+* Species names from `-T` and files from `-t` must be in the same order. 
+* Several folders with many intermediate files are generated (`-d`, `-I`, and `-S`), in case it is needed to re-examine later.
+* For alignment format (`-f`), most cases *phylip* format is actually *phylip-relaxed*.
+* By default, the e-value cutoff is determined uniquely for each gene based on the lower limit of that hmm against the original gene set. This is to reduce the chance of finding out-paralogs. However, a static e-value cutoff for `hmmsearch` can be given using `-e`.
+* To generate the new supermatrix with the added taxa, specify the name of the new file with `-U`. A new partition file will be automatically generated if `-U` is specified.
 
-`add_taxa_to_align.py -a philippe2009_FullAlignment.phy -i philippe2009_partitions.txt -t ~/genomes/apis_mellifera/amel_OGSv3.2_pep.fa -e 1e-20 -T Apis_mellifera -f phylip-relaxed -U philippe2009_w_amel.aln`
+`add_taxa_to_align.py -a philippe2009_FullAlignment.phy -i philippe2009_partitions.txt -t ~/genomes/apis_mellifera/amel_OGSv3.2_pep.fa -T Apis_mellifera -f phylip-relaxed -U philippe2009_w_amel.aln`
 
 Requires [BioPython](http://biopython.org/wiki/Download), [hmmsearch and hmmbuild](http://hmmer.org/), and [mafft v7.3.10](http://mafft.cbrc.jp/alignment/software/source.html), though could be modified to use any aligner. Older versions fo mafft are compatible if using the `-r` option  (current script requires an option in v7.3), which skips the mafft alignment-trimming step.
 
 Binaries are assumed to be in the user's PATH. This can be changed with the options `--mafft`, `--hmmbin`, and `--fasttree`. Both `--mafft` and `--fasttree` should point to binaries, but `--hmmbin` points to a folder containing both hmmsearch and hmmbuild.
 
-`add_taxa_to_align.py -a philippe2009_FullAlignment.phy -i philippe2009_partitions.txt -t ~/genomes/apis_mellifera/amel_OGSv3.2_pep.fa -e 1e-20 -T Apis_mellifera -f phylip-relaxed -U philippe2009_w_amel.aln --mafft ~/programs/mafft --hmmbin ~/programs/`
+`add_taxa_to_align.py -a philippe2009_FullAlignment.phy -i philippe2009_partitions.txt -t ~/genomes/apis_mellifera/amel_OGSv3.2_pep.fa -T Apis_mellifera -f phylip-relaxed -U philippe2009_w_amel.aln --mafft ~/programs/mafft --hmmbin ~/programs/`
 
 ## check_supermatrix_alignments.py ##
 Quick diagnostic script to check matrix occupancy. Adjust format accordingly based on the alignment using the `-f` option. As above, in most cases *phylip* format is probably *phylip-relaxed*.
@@ -24,7 +31,9 @@ To generate a chart of matrix occupancy, add the `-m` option with the name of th
 `check_supermatrix_alignments.py -a philippe2009_FullAlignment.phy -p philippe2009_partitions.txt -f phylip-relaxed -m philippe2009_occupancy_matrix.tab`
 
 ## draw_matrix_occupancy.R ##
-A graph of matrix occupancy can be generated with the accompanied R script. Genes that are present are colored blue, partial genes are red, and absent genes are white, for each taxa. Taxa with 100% occupancy are colored green, while those with under 50% are colored purple. The script can be run in the terminal like:
+A graph of matrix occupancy can be generated with the accompanied R script. Genes that are present are colored blue, partial genes are red, and absent genes are white, for each taxa. Taxa with 100% occupancy are colored green, while those with under 50% are colored purple. The taxon order in the graph is the same order as given in the supermatrix alignment, which is then preserved in the matrix occupancy chart above. Taxa can be reordered arbitrarily in either file.
+
+The script can be run in the terminal as:
 
 `Rscript draw_matrix_occupancy.R philippe2009_occupancy_matrix.tab`
 
