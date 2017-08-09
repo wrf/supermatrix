@@ -52,7 +52,7 @@ def check_alignments(fullalignment, alignformat, partitions, makematrix=False):
 	if fullalignment.rsplit('.',1)[1]=="gz": # autodetect gzip format
 		opentype = gzip.open
 		print >> sys.stderr, "# reading alignment {} as gzipped".format(fullalignment), time.asctime()
-	else: # otherwise assume normal open for GTF format
+	else: # otherwise assume normal open
 		opentype = open
 		print >> sys.stderr, "# reading alignment {}".format(fullalignment), time.asctime()
 	alignedseqs = AlignIO.read(opentype(fullalignment), alignformat)
@@ -70,7 +70,7 @@ def check_alignments(fullalignment, alignformat, partitions, makematrix=False):
 			if lettercounts["-"] == seqlen: # seq is all gaps, so no seq
 				gapdict[species] += 1
 				occupancyscore = 0 # set to 0 if all gaps
-			elif lettercounts["-"] >= seqlen/2:
+			elif lettercounts["-"] >= seqlen * 0.5: # partial means half or more of sequence is gaps
 				halfgapdict[species] += 1
 				occupancyscore = 1 # set to 1 if partial
 
