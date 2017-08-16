@@ -19,6 +19,11 @@ Binaries are assumed to be in the user's PATH. This can be changed with the opti
 
 `add_taxa_to_align.py -a philippe2009_FullAlignment.phy -i philippe2009_partitions.txt -t ~/genomes/apis_mellifera/amel_OGSv3.2_pep.fa -T Apis_mellifera -f phylip-relaxed -U philippe2009_w_amel.aln --mafft ~/programs/mafft --hmmbin ~/programs/`
 
+## join_alignments.py ##
+Join multiple individual alignment files into a supermatrix, allowing for only one occurence of any taxa in each alignment. Names must be the same, though can have unique identifiers (like gene names or numbers) as long as they can be systematically split from the taxon names (using `-d`).
+
+`join_alignments.py -a hehenberger2017_alignments/* -d "@" -u hehenberger2017_supermatrix.fasta`
+
 ## check_supermatrix_alignments.py ##
 Quick diagnostic script to check matrix occupancy. Adjust format accordingly based on the alignment using the `-f` option. As above, in most cases *phylip* format is probably *phylip-relaxed*.
 
@@ -43,3 +48,4 @@ The script can be run in the terminal as:
 * Philippe et al (2009) dataset of 128 genes and 30k positions, from [Phylogenomics Revives Traditional Views on Deep Animal Relationships](https://www.sciencedirect.com/science/article/pii/S0960982209008057)
 * Cannon et al (2016) dataset of 212 genes, from [Xenacoelomorpha is the sister group to Nephrozoa](http://www.nature.com/nature/journal/v530/n7588/full/nature16520.html) 
 * [Simion et al 2017](https://github.com/psimion/SuppData_Metazoa_2017) dataset of 1719 genes, where partition file has been reduced to only the numbers and ? in the supermatrix are replaced with gaps, from [A Large and Consistent Phylogenomic Dataset Supports Sponges as the Sister Group to All Other Animals](http://www.sciencedirect.com/science/article/pii/S0960982217301999)
+* [Hehenberger 2017](http://datadryad.org/resource/doi:10.5061/dryad.26bv4) dataset of 255 genes from 38 taxa, from [Novel Predators Reshape Holozoan Phylogeny and Reveal the Presence of a Two-Component Signaling System in the Ancestor of Animals](http://www.sciencedirect.com/science/article/pii/S0960982217307078)
