@@ -2,7 +2,7 @@
 # join_alignments.py v1.0 created 2017-08-15
 
 '''
-join_alignments.py v1.0 2017-08-15
+join_alignments.py v1.0 2017-08-18
 
     specify multiple alignments with -a
     species names are expected to be the same, perhaps separated by an
@@ -17,6 +17,7 @@ import sys
 import argparse
 import time
 from Bio import AlignIO
+from collections import OrderedDict
 
 def main(argv, wayout):
 	if not len(argv):
@@ -25,12 +26,13 @@ def main(argv, wayout):
 	parser.add_argument('-a','--alignments', nargs="*", help="alignment files", required=True)
 	parser.add_argument('-d','--delimiter', help="optional delimiter for sequence names")
 	parser.add_argument('-f','--format', default="fasta", help="alignment format [fasta]")
+	parser.add_argument('-s','--sort', action="store_true", help="sort sequences alphabetically for output")
 	parser.add_argument('-u','--supermatrix', help="name for supermatrix output", required=True)
 	args = parser.parse_args(argv)
 
 	runningsum = 0
 	aligncounter = 0
-	superprotsbytaxa = {} # keys are taxa, values are concatenated proteins
+	superprotsbytaxa = OrderedDict() # keys are taxa, values are concatenated proteins
 	partitionlist = []
 
 	problemtaxa = 0
@@ -57,7 +59,7 @@ def main(argv, wayout):
 					existingkeys.pop(taxon_id)
 					superprotsbytaxa[taxon_id] += str(seqrec.seq)
 				except KeyError:
-					print >> sys.stderr, "WARNING: TAXON {} OCCURS MORE THAN ONCE IN ALIGNMENT {}".format( taxon_id, alignfile )
+					print >> sys.stderr, "WARNING: {} OCCURS MORE THAN ONCE IN ALIGNMENT {}".format( taxon_id, alignfile )
 					problemtaxa += 1
 					problemalignments[alignfile] = True
 			else: # if that taxa is not yet in growing matrix, fill entry with gaps
@@ -73,8 +75,12 @@ def main(argv, wayout):
 
 	### BUILD SUPERMATRIX
 	with open(args.supermatrix,'w') as sm:
-		for taxon,sequence in superprotsbytaxa.iteritems():
-			print >> sm, ">{}\n{}".format(taxon, sequence)
+		if args.sort: # sort alphabetically
+			for taxon in sorted( superprotsbytaxa.keys() ):
+				print >> sm, ">{}\n{}".format(taxon, superprotsbytaxa[taxon])
+		else: # sequence order is arbitrary, based on whatever the first alignment had
+			for taxon,sequence in superprotsbytaxa.iteritems():
+				print >> sm, ">{}\n{}".format(taxon, sequence)
 		print >> sys.stderr, "# Supermatrix written to {}".format(args.supermatrix), time.asctime()
 		with open("{}.partition.txt".format(args.supermatrix),'w') as pf:
 			print >> pf, ",".join(partitionlist)
