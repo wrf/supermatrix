@@ -24,6 +24,11 @@ Join multiple individual alignment files into a supermatrix, allowing for only o
 
 `join_alignments.py -a hehenberger2017_alignments/* -d "@" -u hehenberger2017_supermatrix.fasta`
 
+## split_supermatrix_to_taxa.py ##
+Split a supermatrix into fasta files, one for each taxa where individual proteins are defined by the partition file. Empty proteins are ignored, but gaps are retained. This is NOT the reverse operation of `join_alignments.py`, which joins multiple alignment files into a supermatrix.
+
+`./split_supermatrix_to_taxa.py -a simion2017_97sp_401632pos_1719genes.fasta.gz -d simion_taxa -p simion2017_partitions.txt`
+
 ## check_supermatrix_alignments.py ##
 Quick diagnostic script to check matrix occupancy. Adjust format accordingly based on the alignment using the `-f` option. As above, in most cases *phylip* format is probably *phylip-relaxed*.
 
