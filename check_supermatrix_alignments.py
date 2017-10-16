@@ -2,7 +2,7 @@
 #
 # check_supermatrix_alignments.py created 2017-03-13
 
-'''check_supermatrix_alignments.py v1.1 2017-08-03
+'''check_supermatrix_alignments.py v1.2 2017-10-16
 tool to quickly check for abnormal sequences in fasta alignments
 
 checknogalignments.py -a matrix.phy -p partitions.txt
@@ -19,6 +19,9 @@ Species  Partitions  Number-missing  Percent-missing  Number-partial  Percent-pa
 checknogalignments.py -a matrix.phy -p partitions.txt -m occupancy_matrix.tab
     where matrix consists of three values for:
     present (2), partial (1), and absent (0)
+
+    matrix order can be changed based on a phylogenetic tree in nexus format
+checknogalignments.py -a matrix.phy -p partitions.txt -m occupancy_matrix.tab -T tree.nex
 '''
 
 import sys
@@ -28,6 +31,7 @@ import time
 import gzip
 from collections import defaultdict,Counter
 from Bio import AlignIO
+from Bio import Phylo
 
 def get_partitions(partitionfile):
 	'''read comma-delimited partition information and return a list of tuples'''
@@ -56,6 +60,7 @@ def check_alignments(fullalignment, alignformat, partitions, makematrix=False):
 		opentype = open
 		print >> sys.stderr, "# reading alignment {}".format(fullalignment), time.asctime()
 	alignedseqs = AlignIO.read(opentype(fullalignment), alignformat)
+	print >> sys.stderr, "# Alignment contains {} taxa for {} sites, including gaps".format( len(alignedseqs), alignedseqs.get_alignment_length() )
 	for seqrec in alignedseqs: # all species must be counted once
 		gapdict[seqrec.id] = 0
 		if occmatrix is not None:
@@ -88,6 +93,7 @@ def main(argv, wayout):
 	parser.add_argument('-H','--header', action="store_true", help="include header line")
 	parser.add_argument('-m','--matrix-out', help="name for optional matrix-occupancy output file")
 	parser.add_argument('-D','--matrix-delimiter', default="\t", help="delimiter for matrix file [default is tab]")
+	parser.add_argument('-T','--matrix-tree', help="optional Nexus-format tree to reorder matrix")
 	parser.add_argument('-p','--partition', help="partition file for splitting large alignments")
 	args = parser.parse_args(argv)
 
@@ -102,11 +108,20 @@ def main(argv, wayout):
 			headerline = ["Species"] + ["{}-{}".format(*part) for part in partitions]
 			print >> mo, args.matrix_delimiter.join(headerline)
 			# print occupancy by each species
-			for occbysplist in occmatrix:
-				print >> mo, args.matrix_delimiter.join(occbysplist)
+			if args.matrix_tree: # use order from a rooted nexus-format tree
+				occdict = {} # convert occmatrix from list of lists to dict of lists
+				for occrow in occmatrix:
+					occdict[occrow[0]] = occrow[1:]
+				tree = Phylo.read(args.matrix_tree,"nexus")
+				for clade in tree.get_terminals():
+					cleanname = str(clade.name).replace("'","").replace('"','')
+					print >> mo, args.matrix_delimiter.join( [cleanname] + occdict[cleanname] )
+			else: # just use default order from the alignment
+				for occbysplist in occmatrix:
+					print >> mo, args.matrix_delimiter.join(occbysplist)
 
 	if args.header:
-		#                  0           1           2       3
+		#                  0           1           2    3     4      5
 		print >> wayout, "Species\tPartitions\tMissing\tM%\tPartial\tP%"
 
 	for k,v in sorted(gapdict.iteritems(), reverse=True, key=lambda x: x[1]):
