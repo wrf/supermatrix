@@ -40,6 +40,13 @@ To generate a chart of matrix occupancy, add the `-m` option with the name of th
 
 `check_supermatrix_alignments.py -a philippe2009_FullAlignment.phy -p philippe2009_partitions.txt -f phylip-relaxed -m philippe2009_occupancy_matrix.tab`
 
+## filter_supermatrix.py ##
+Filter supermatrices based on coverage for each gene. Minimum coverage is given by `-c` for values between 0 and 1. A new partition file is automatically generated based on the output name `-o`. 
+
+`filter_supermatrix.py -a simion2017_97sp_401632pos_1719genes.fasta -c 0.75 -p simion2017_partitions.txt -o simion2017_97sp_75cov.fasta`
+
+Requires [BioPython](http://biopython.org/wiki/Download)
+
 ## draw_matrix_occupancy.R ##
 A graph of matrix occupancy can be generated with the accompanied R script. Genes that are present are colored blue, partial genes are red, and absent genes are white, for each taxa. Taxa with 100% occupancy are colored green, while those with under 50% are colored purple. The taxon order in the graph is the same order as given in the supermatrix alignment, which is then preserved in the matrix occupancy chart above. Taxa can be reordered arbitrarily in either file.
 
