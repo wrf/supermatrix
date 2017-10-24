@@ -69,8 +69,8 @@ def main(argv, wayout):
 		for notfoundkey in existingkeys:
 			superprotsbytaxa[notfoundkey] += "-" * al_length
 		# extend the current running sum of lengths and update partitions
+		partitionlist.append("{}:{}".format(runningsum+1, targetlength) )
 		runningsum += al_length
-		partitionlist.append("{}:{}".format(runningsum+1, runningsum+al_length) )
 	print >> sys.stderr, "# Finished parsing {} alignments".format( aligncounter )
 
 	### BUILD SUPERMATRIX
