@@ -49,9 +49,8 @@ taxacolors[badtaxa] = "#cd13c2"
 # repeat for gene partitions to teal
 print(paste("# coloring genes with occupancy >=", OCCTHRESBYGENE, sep=" " ))
 completegenes = which(apply(occmatrix, 2, sum)>=maxtscore*OCCTHRESBYGENE)
-genecolors = rep("#000000",taxa)
+genecolors = rep("#000000",genes)
 genecolors[completegenes] = "#06ac7f"
-
 
 # #
 # GENERATE PDF OUTPUT #
