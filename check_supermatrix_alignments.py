@@ -72,7 +72,7 @@ def check_alignments(fullalignment, alignformat, partitions, makematrix=False):
 			seqlen = len(seqrec.seq)
 			lettercounts = Counter(str(seqrec.seq).replace("X","-"))
 			occupancyscore = 2 # by default is present, reassign if absent or partial
-			if lettercounts["-"] == seqlen: # seq is all gaps, so no seq
+			if lettercounts["-"] == seqlen or lettercounts["?"] == seqlen: # seq is all gaps, so no seq
 				gapdict[species] += 1
 				occupancyscore = 0 # set to 0 if all gaps
 			elif lettercounts["-"] >= seqlen * 0.5: # partial means half or more of sequence is gaps
