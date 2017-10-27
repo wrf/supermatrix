@@ -40,7 +40,7 @@ To generate a chart of matrix occupancy, add the `-m` option with the name of th
 
 `check_supermatrix_alignments.py -a philippe2009_FullAlignment.phy -p philippe2009_partitions.txt -f phylip-relaxed -m philippe2009_occupancy_matrix.tab`
 
-To reorder the matrix based on taxa in a rooted tree, use the `-T` option with a nexus-format tree. For instance, open any tree in figtree, rotate branches, etc, then copy and paste the tree to a text file, and this is in nexus format. The run `draw_matrix_occupancy.R` below.
+To reorder the matrix based on taxa in a rooted tree, use the `-T` option with a nexus-format tree. For instance, open any tree in figtree, rotate branches, etc, then copy and paste the tree to a text file, and this is in nexus format. Then run `draw_matrix_occupancy.R` below.
 
 `check_supermatrix_alignments.py -p Metazoa_full_Models_short.txt -a Metazoa_full-fix.phy -f phylip-relaxed -m Metazoa_full_matrix.tab -T Metazoa_full.nex`
 
@@ -63,6 +63,7 @@ The script can be run in the terminal as:
 ## test alignments and occupancy matrices ##
 * Philippe et al (2009) dataset of 128 genes and 30k positions, from [Phylogenomics Revives Traditional Views on Deep Animal Relationships](https://www.sciencedirect.com/science/article/pii/S0960982209008057)
 * [Hejnol 2009](https://bitbucket.org/caseywdunn/hejnol_etal_2009) dataset of 1486 genes for 270k positions, from [Assessing the root of bilaterian animals with scalable phylogenomic methods](http://rspb.royalsocietypublishing.org/content/276/1677/4261)
+* [Nosenko 2013](https://data.ub.uni-muenchen.de/55/) datasets of 35 genes/9k sites and 87 genes/14k sites from 71 taxa, from [Deep metazoan phylogeny: When different genes tell different stories](http://www.sciencedirect.com/science/article/pii/S1055790313000298)
 * [Zapata 2015](https://bitbucket.org/caseywdunn/cnidaria2014) dataset of 1262 genes for 365k positions, from [Phylogenomic Analyses Support Traditional Relationships within Cnidaria](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0139068)
 * Cannon et al (2016) dataset of 212 genes, from [Xenacoelomorpha is the sister group to Nephrozoa](http://www.nature.com/nature/journal/v530/n7588/full/nature16520.html) 
 * [Simion et al 2017](https://github.com/psimion/SuppData_Metazoa_2017) dataset of 1719 genes, where partition file has been reduced to only the numbers and ? in the supermatrix are replaced with gaps, from [A Large and Consistent Phylogenomic Dataset Supports Sponges as the Sister Group to All Other Animals](http://www.sciencedirect.com/science/article/pii/S0960982217301999)
