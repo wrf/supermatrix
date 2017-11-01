@@ -19,6 +19,8 @@ Binaries are assumed to be in the user's PATH. This can be changed with the opti
 
 `add_taxa_to_align.py -a philippe2009_FullAlignment.phy -i philippe2009_partitions.txt -t ~/genomes/apis_mellifera/amel_OGSv3.2_pep.fa -T Apis_mellifera -f phylip-relaxed -U philippe2009_w_amel.aln --mafft ~/programs/mafft --hmmbin ~/programs/`
 
+All messages and reports can be captured as standard error, such as `2> philippe2009_w_new_taxa.log`.
+
 ## join_alignments.py ##
 Join multiple individual alignment files into a supermatrix, allowing for only one occurence of any taxa in each alignment. Names must be the same, though can have unique identifiers (like gene names or numbers) as long as they can be systematically split from the taxon names (using `-d`).
 
