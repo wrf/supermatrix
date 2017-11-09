@@ -16,7 +16,7 @@ taxa = dim(occmatrix)[1]
 genes = dim(occmatrix)[2]
 
 # set colors for 0, 1 and 2, as white, orange, and blue
-occupancycolors = c("#FFFFFF","#ea4f12", "#477df6")
+occupancycolors = c("#fec44f","#addd8e","#FFFFFF","#ea4f12", "#477df6")
 
 # generate matrix and reverse row order to place 1 at the top
 m1 = matrix(unlist(occmatrix), ncol=taxa, byrow=TRUE)
@@ -62,14 +62,19 @@ par(mar=c(6,12,4,1))
 
 # inverted order, to resemble viewing the table directly
 # this should be considered "normal"
-image(x=1:genes, y=1:taxa, z=m2, col=occupancycolors, xlab="", ylab="", axes=FALSE, main=inputfile )
+image(x=1:genes, y=1:taxa, z=m2, zlim=c(-2,2), col=occupancycolors, xlab="", ylab="", axes=FALSE, main=inputfile )
 mtext("Gene partitions", 1, line=4, cex=1.3)
 mtext(rev(row.names(occmatrix)),side=2,at=c(1:taxa),las=1, cex=0.9, col=taxacolors)
 mtext(sub("X","",colnames(occmatrix)),side=1,at=c(1:genes),las=2, cex=0.7, col=genecolors)
 
 # turn on XPD to allow drawing outside of normal frame
 par(xpd=TRUE)
-legend(-24,-1, legend=c("Absent","Incomplete","Present"), pch=22, pt.bg=occupancycolors, cex=1.1)
+# if negative values are present, assume comparison script, and draw different legend
+if (min(m2)<0) {
+legend(-35,-1, legend=c("In m2", "In m1", "Absent","Mismatch","Same"), pch=22, pt.bg=occupancycolors, cex=1.1, ncol=2)
+} else {
+legend(-24,-1, legend=c("Absent","Incomplete","Present"), pch=22, pt.bg=occupancycolors[3:5], cex=1.1)
+}
 
 dev.off()
 
