@@ -2,7 +2,7 @@
 # join_alignments.py v1.0 created 2017-08-15
 
 '''
-join_alignments.py v1.0 2017-08-18
+join_alignments.py v1.0 2017-11-13
 
     specify multiple alignments with -a
     species names are expected to be the same, perhaps separated by an
@@ -11,11 +11,15 @@ join_alignments.py v1.0 2017-08-18
       can be split with -d "@"
 
 join_alignments.py -a hehenberger2017_alignments/* -d "@" -u hehenberger2017_supermatrix.fasta
+
+    if rejoining alignments from add_taxa_to_align, after manual editing
+    use -A to keep partition order
 '''
 
 import sys
 import argparse
 import time
+import re
 from Bio import AlignIO
 from collections import OrderedDict
 
@@ -24,6 +28,7 @@ def main(argv, wayout):
 		argv.append('-h')
 	parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description=__doc__)
 	parser.add_argument('-a','--alignments', nargs="*", help="alignment files", required=True)
+	parser.add_argument('-A','--add-taxa-order', action="store_true", help="reorder partitions based on output names from add_taxa_to_align.py")
 	parser.add_argument('-d','--delimiter', help="optional delimiter for sequence names")
 	parser.add_argument('-f','--format', default="fasta", help="alignment format [fasta]")
 	parser.add_argument('-s','--sort', action="store_true", help="sort sequences alphabetically for output")
@@ -38,7 +43,11 @@ def main(argv, wayout):
 	problemtaxa = 0
 	problemalignments = {}
 
-	for alignfile in args.alignments:
+	alignlist = args.alignments
+	if args.add_taxa_order: # sort by partition number, assuming from add_taxa_to_align
+		alignlist = sorted(alignlist, key=lambda x: int(re.search("(\d+)_(\d+)_part.aln",x).group(1)))
+
+	for alignfile in alignlist:
 		aligncounter += 1
 		alignment = AlignIO.read(alignfile, args.format)
 		al_length = alignment.get_alignment_length()
