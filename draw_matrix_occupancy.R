@@ -63,7 +63,8 @@ par(mar=c(6,12,4,1))
 # inverted order, to resemble viewing the table directly
 # this should be considered "normal"
 image(x=1:genes, y=1:taxa, z=m2, zlim=c(-2,2), col=occupancycolors, xlab="", ylab="", axes=FALSE, main=inputfile )
-mtext("Gene partitions", 1, line=4, cex=1.3)
+mtext( paste("Gene partitions ( n =",genes,")") , 1, line=4, cex=1.3)
+mtext( paste("n taxa =",taxa) , side=3, line=1, at=c(-10), cex=1.3 )
 mtext(rev(row.names(occmatrix)),side=2,at=c(1:taxa),las=1, cex=0.9, col=taxacolors)
 mtext(sub("X","",colnames(occmatrix)),side=1,at=c(1:genes),las=2, cex=0.7, col=genecolors)
 
