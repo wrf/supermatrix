@@ -6,9 +6,9 @@ Script to add new taxa to an existing protein supermatrix alignment. Proteins fr
 * Multiple new taxa can be added with `-t`, as space-separate protein files (could be gene models or translated from transcriptomes). 
 * By default, only the single best hit is taken (changed with `-m`), and is renamed to the corresponding species given in `-T`. 
 * Species names from `-T` and files from `-t` must be in the same order. 
-* Several folders with many intermediate files are generated (`-d`, `-I`, and `-S`), in case it is needed to re-examine later.
+* Several folders with many intermediate files are generated (`-d`, `-E`, `-I`, and `-S`), in case it is needed to re-examine later.
 * For alignment format (`-f`), most cases *phylip* format is actually *phylip-relaxed*.
-* By default, the e-value cutoff is determined uniquely for each gene based on the lower limit of that hmm against the original gene set. This is to reduce the chance of finding out-paralogs. However, a static e-value cutoff for `hmmsearch` can be given using `-e`.
+* By default, the e-value cutoff is determined uniquely for each gene based on the lower limit of that hmm against the original gene set. This is to reduce the chance of finding out-paralogs. However, a static e-value cutoff for `hmmsearch` can be given using `--ev-threshold`, though this is not advised. See below for an explanation.
 * To generate the new supermatrix with the added taxa, specify the name of the new file with `-U`. A new partition file will be automatically generated if `-U` is specified.
 
 `add_taxa_to_align.py -a philippe2009_FullAlignment.phy -i philippe2009_partitions.txt -t ~/genomes/apis_mellifera/amel_OGSv3.2_pep.fa -T Apis_mellifera -f phylip-relaxed -U philippe2009_w_amel.aln`
@@ -19,12 +19,14 @@ Binaries are assumed to be in the user's PATH. This can be changed with the opti
 
 `add_taxa_to_align.py -a philippe2009_FullAlignment.phy -i philippe2009_partitions.txt -t ~/genomes/apis_mellifera/amel_OGSv3.2_pep.fa -T Apis_mellifera -f phylip-relaxed -U philippe2009_w_amel.aln --mafft ~/programs/mafft --hmmbin ~/programs/`
 
-All messages and reports can be captured as standard error, such as `2> philippe2009_w_new_taxa.log`.
+All messages and reports can be captured as standard error (using `2>`), such as `2> philippe2009_w_new_taxa.log`. It is recommended to do this.
 
 ## join_alignments.py ##
 Join multiple individual alignment files into a supermatrix, allowing for only one occurence of any taxa in each alignment. Names must be the same, though can have unique identifiers (like gene names or numbers) as long as they can be systematically split from the taxon names (using `-d`).
 
 `join_alignments.py -a hehenberger2017_alignments/* -d "@" -u hehenberger2017_supermatrix.fasta`
+
+This can also be used to rejoin alignments produced by `add_taxa_to_align.py` that are manually edited. Use the `-A` option to detect the order from the default output naming scheme of the alignments.
 
 ## split_supermatrix_to_taxa.py ##
 Split a supermatrix into fasta files, one for each taxa where individual proteins are defined by the partition file. Empty proteins are ignored, but gaps are retained. This is NOT the reverse operation of `join_alignments.py`, which joins multiple alignment files into a supermatrix.
@@ -72,3 +74,14 @@ The script can be run in the terminal as:
 * [Simion et al 2017](https://github.com/psimion/SuppData_Metazoa_2017) dataset of 1719 genes, where partition file has been reduced to only the numbers and ? in the supermatrix are replaced with gaps, from [A Large and Consistent Phylogenomic Dataset Supports Sponges as the Sister Group to All Other Animals](http://www.sciencedirect.com/science/article/pii/S0960982217301999)
 * [Hehenberger 2017](http://datadryad.org/resource/doi:10.5061/dryad.26bv4) dataset of 255 genes from 38 taxa, from [Novel Predators Reshape Holozoan Phylogeny and Reveal the Presence of a Two-Component Signaling System in the Ancestor of Animals](http://www.sciencedirect.com/science/article/pii/S0960982217307078)
 * [Whelan 2017](https://figshare.com/articles/Ctenophora_Phylogeny_Datasets_and_Core_Orthologs/4484138) datasets of 350, 212, and 117 genes, from [Ctenophore relationships and their placement as the sister group to all other animals](https://www.nature.com/articles/s41559-017-0331-3)
+
+## determination of evalues for each partition ##
+For programs like BLAST or HMMSEARCH, the bitscore, and ultimately the E-value, is dependent on the length of the matched portion. Thus, a good match of a short protein will never have a bitscore as high as a good match for a long protein. For this reason, a static E-value cutoff is not suitable for identifying orthologs in new species.
+
+Considering the chart below, each point represents a self-hit from the HMM profile against the original dataset that was used to make the profile. The longest proteins are dark blue (~700AAs) and the shortest ones are red (~100AAs), with a gradient in between. Proteins that are 80% of the length of the alignment are indicated by the dark circles.
+
+![philippe2009_w_coral_selfhits.png](https://github.com/wrf/supermatrix/blob/master/philippe2009_w_coral_selfhits.png)
+
+It is immediately evident that the highest E-values belong to the longest proteins. Thus, it is clear that a single value cannot be used as a filter for all partitions in a supermatrix. However, even for a long protein, it is clear that many proteins in the original set have E-values substantially lower than the max. These are partial proteins that are kept in the matrix. Thus, the threshold for each partition must be determined primarily by the long proteins, not the lowest value.
+
+A single threshold by E-value based on only long sequences would work, but this would never allow partial matches, as the target proteins would probably have to be the same length as most of the complete sequences. For this, an additional heuristic is used, based on the bitscore-per-length (BpL). This measurement can effectively sort out out-paralogs, but can also help to identify partial sequences. This is necessary because a closely related protein may be full length, and ultimately get a higher bitscore, than a real protein that is only partially complete (say in a transcriptome). Thus, any hits that have a higher BpL than the mean for that partition are kept anyway, even if they are too short, and this takes precedent over a longer hit with a much lower BpL.
