@@ -2,7 +2,7 @@
 #
 # check_supermatrix_alignments.py created 2017-03-13
 
-'''check_supermatrix_alignments.py v1.2 2017-10-16
+'''check_supermatrix_alignments.py v1.2 2017-11-15
 tool to quickly check for abnormal sequences in fasta alignments
 
 checknogalignments.py -a matrix.phy -p partitions.txt
@@ -115,7 +115,10 @@ def main(argv, wayout):
 				tree = Phylo.read(args.matrix_tree,"nexus")
 				for clade in tree.get_terminals():
 					cleanname = str(clade.name).replace("'","").replace('"','')
-					print >> mo, args.matrix_delimiter.join( [cleanname] + occdict[cleanname] )
+					try:
+						print >> mo, args.matrix_delimiter.join( [cleanname] + occdict[cleanname] )
+					except KeyError:
+						print >> sys.stderr, "WARNING: CANNOT FIND TAXA {} IN ALIGNMENT, SKIPPING".format(cleanname)
 			else: # just use default order from the alignment
 				for occbysplist in occmatrix:
 					print >> mo, args.matrix_delimiter.join(occbysplist)
