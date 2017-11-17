@@ -2,7 +2,7 @@
 # add_taxa_to_align.py v1.0 created 2016-12-08
 
 '''
-add_taxa_to_align.py v1.4 2017-11-09
+add_taxa_to_align.py v1.4 2017-11-17
     add new taxa to an existing untrimmed alignment
 
     to add proteins from species1 and species2 to alignments prot1 and prot2:
@@ -21,9 +21,10 @@ add_taxa_to_align.py -a *.aln -t new_transcriptomes/
     partition file is comma-delimited text, as single or multiple lines
 1:136,137:301,...
 
-    no e-value threshold is set for hmmsearch, though results are filtered
-    e-value cutoff can be determined automatically (default)
-    or set manually with option -e
+    no e-value threshold is set for hmmsearch, as results are filtered later
+    e-value cutoff will be determined automatically (default)
+    this can be statically assigned with --ev-threshold,
+    though that is not recommended
 
   IT IS ADVISED TO COLLECT ALL STDERR AS A LOG FILE WITH 2>
 '''
@@ -181,7 +182,7 @@ def make_seq_length_dict(sequencefile):
 	print >> sys.stderr, "# Found {} sequences".format(len(lengthdict)), time.asctime()
 	return lengthdict
 
-def get_evalue_from_hmm(HMMSEARCH, hmmprofile, alignment, threadcount, hmmevaluedir, errorlog, correction):
+def get_evalue_from_hmm(HMMSEARCH, hmmprofile, alignment, threadcount, hmmevaluedir, errorlog, evcorrection, bplcorrection):
 	'''get dynamic evalue and bitscore/length cutoff from alignment and hmm'''
 	# DEGAP FASTA FILE
 	fasta_unaligned = os.path.join( hmmevaluedir, "{}_no_gaps.fasta".format(os.path.splitext(os.path.basename(alignment))[0] ) )
@@ -215,9 +216,9 @@ def get_evalue_from_hmm(HMMSEARCH, hmmprofile, alignment, threadcount, hmmevalue
 		if maxevalue==0.0: # if all evalues are 0.0, then set to 1e-300
 			maxevalue = 1e-300
 		else:
-			maxevalue = maxevalue * correction # correct by constant margin of error, should be 1e10
+			maxevalue = maxevalue * evcorrection # correct by constant margin of error, should be 1e10
 		print >> errorlog, "# calculated e-value for {} as {:.3e}".format(alignment, maxevalue)
-		bplcutoff = min(bitslenlist) - 0.1
+		bplcutoff = min(bitslenlist) - bplcorrection # should be 0.1 by default
 		if bplcutoff < 0.9:
 			bplcutoff = 0.9
 			print >> errorlog, "# using minimum bits-per-length cutoff for {} of {:.2f}".format(alignment, bplcutoff), time.asctime()
@@ -323,9 +324,11 @@ def main(argv, wayout, errorlog):
 	parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description=__doc__)
 	parser.add_argument('-a','--alignments', nargs="*", help="alignment files or directory")
 	parser.add_argument('-d','--directory', default="new_taxa", help="directory for new alignments [autonamed]")
-	parser.add_argument('-e','--evalue', help="Evalue cutoff for hmmsearch [auto]")
-	parser.add_argument('--ev-correction', type=float, default=1e15, help="evalue offset for automatic detection [1e15]")
-	parser.add_argument('-E','--hmm-evalue-dir', default="hmm_vs_self", help="temporary directory for hmm self-search [./hmm_vs_self]")
+	parser.add_argument('--ev-threshold', help="static E-value cutoff for hmmsearch, otherwise determined automatically")
+	parser.add_argument('--ev-correction', type=float, default=1e15, help="E-value offset for automatic detection [1e15]")
+	parser.add_argument('--bpl-threshold', type=float, default=0.9, help="bits-per-length minimum threshold, otherwise determined automatically")
+	parser.add_argument('--bpl-correction', type=float, default=0.1, help="bits-per-length offset for automatic detection [0.1]")
+	parser.add_argument('-E','--hmm-evalue-dir', default="hmm_vs_self", help="temporary directory for hmm self-search to dynamically determine E-value [./hmm_vs_self]")
 	parser.add_argument('-f','--format', default="fasta", help="alignment format [fasta]")
 	parser.add_argument('-i','--partition', help="optional partition file for splitting large alignments")
 	parser.add_argument('-I','--partition-dir', default="partitions", help="temporary directory for partitioned alignments [./partitions]")
@@ -435,18 +438,29 @@ def main(argv, wayout, errorlog):
 	bitlenforhmmdict = {} # bitscore per length is calculated once, hmm name is key
 
 	print >> errorlog, "# Building HMM profiles", time.asctime()
-	if args.evalue is None:
+	if args.ev_threshold is None:
 		print >> errorlog, "# Determining evalue for each HMM, using offset of {:.1e}".format(args.ev_correction)
+	else:
+		try:
+			args.ev_threshold = float(args.ev_threshold)
+		except ValueError:
+			print >> errorlog, "# WARNING: {} CANNOT BE CONVERTED TO FLOAT, LEAVE --ev-threshold BLANK TO ENABLE AUTO-DETERMINATION OF EVALUE".format(args.ev_threshold)
+			args.ev_threshold = None
 
+	# GET EVALUE AND BPL FOR EACH ALIGNMENT
 	for alignment in alignfiles:
 		# make hmm profile from alignment, test against original set to determine evalue cutoff for new seqs
 		hmmprofile = run_hmmbuild(HMMBUILD, alignment, errorlog)
 		aligntohmm[alignment] = hmmprofile
 		hmmprofilelist.append(hmmprofile)
-		filtered_evalue, filtered_bitlen = float(args.evalue) if args.evalue else get_evalue_from_hmm(HMMSEARCH, hmmprofile, alignment, args.processors, new_self_dir, errorlog, args.ev_correction)
+		# check if threshold was assigned, otherwise determine for each hmm profile
+		# by running hmmsearch against the original proteins
+		filtered_evalue, filtered_bitlen = [args.ev_threshold, args.bpl_threshold] if args.ev_threshold is not None else get_evalue_from_hmm(HMMSEARCH, hmmprofile, alignment, args.processors, new_self_dir, errorlog, args.ev_correction, args.bpl_correction)
+		# either use the static values, or the dynamic values determined above
 		evalueforhmmdict[hmmprofile] = filtered_evalue
 		bitlenforhmmdict[hmmprofile] = filtered_bitlen
 
+	# RUN HMMSEARCH FOR EACH SPECIES
 	# search each species sequentially, keep matches as SeqRecords in list of lists
 	# to keep memory profile low, sec dict is remade for each species, then all HMMs are run
 	seqrecs_to_add = defaultdict( list ) # key is hmm, value is list of lists of SeqRecords by species
@@ -463,6 +477,7 @@ def main(argv, wayout, errorlog):
 			# add this list for each hmm in the dict 'seqrecs_to_add'
 			seqrecs_to_add[hmmprof].append(seqids_to_add)
 
+	# GET BEST HITS AND MAKE NEW ALIGNMENT
 	# then reiterate over each alignment, make the new fasta file, alignment, tree, and add to supermatrix
 	for alignment in alignfiles:
 		nt_unaligned = os.path.join(new_aln_dir, "{}.fasta".format(os.path.splitext(os.path.basename(alignment))[0] ) )
