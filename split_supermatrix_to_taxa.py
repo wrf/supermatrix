@@ -2,7 +2,7 @@
 #
 # split_supermatrix_to_taxa.py created 2017-09-18
 
-'''split_supermatrix_to_taxa.py v1.0 2017-09-18
+'''split_supermatrix_to_taxa.py v1.0 2017-11-20
 tool to split supermatrices into fasta files for each taxa
 
 split_supermatrix_to_taxa.py -a matrix.phy -p partitions.txt -d taxa_dir -f phylip-relaxed
@@ -51,7 +51,7 @@ def split_taxa(fullalignment, alignformat, taxadir, partitions):
 		with open(taxafilename,'w') as tf:
 			for part in partitions:
 				seqpart = seqrec.seq[part[0]-1:part[1]] # correct alignment positions to python index
-				if str(seqpart).replace("-",""): # ignore completely empty entries
+				if str(seqpart).replace("-","").replace("X",""): # ignore completely empty entries
 					newseq = SeqRecord( seqrec.seq[part[0]-1:part[1]] , id="{}_{}-{}".format(seqrec.id, *part), description="" )
 					tf.write( newseq.format("fasta") )
 		filecounter += 1
