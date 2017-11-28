@@ -2,7 +2,7 @@
 #
 # models_to_partitions.py  created 2017-10-16
 
-'''models_to_partitions.py  last modified 2017-10-16
+'''models_to_partitions.py  last modified 2017-11-28
   convert supermatrix model blocks to simple gene partition pairs
   assumes format of model blocks is:
   LG, p1 = 1-406, 213446-213686
@@ -22,7 +22,7 @@ else:
 	for line in open(sys.argv[1],'r'):
 		line = line.strip()
 		if line:
-			partsplits = line.split('=')[1].split(',')
+			partsplits = line.split('=')[1].replace(";","").split(',')
 			for part in partsplits:
 				part = part.strip()
 				partsublist = [int(p) for p in part.split('-')]
