@@ -48,6 +48,11 @@ To reorder the matrix based on taxa in a rooted tree, use the `-T` option with a
 
 `check_supermatrix_alignments.py -p Metazoa_full_Models_short.txt -a Metazoa_full-fix.phy -f phylip-relaxed -m Metazoa_full_matrix.tab -T Metazoa_full.nex`
 
+## compare_supermatrix_alignments.py ##
+Directly compare two output supermatrices, say from two different runs of `add_taxa_to_align.py` using slightly different parameters. This will show genes that missing in one or the other, or are different between the two, perhaps due to finding incorrect genes or different splice variants.
+
+Note that partitions must be the same, meaning only vary by presence or absence.
+
 ## filter_supermatrix.py ##
 Filter supermatrices based on coverage for each gene. Minimum coverage is given by `-c` for values between 0 and 1. A new partition file is automatically generated based on the output name `-o`. 
 
