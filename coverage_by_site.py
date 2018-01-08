@@ -2,9 +2,16 @@
 #
 # coverage_by_site.py  created 2017-11-27
 
-'''coverage_by_site.py  last modified 2017-11-27
+'''coverage_by_site.py  last modified 2018-01-08
+  quick diagnostic of coverage
+  reports histogram of number of sites with x coverage to stdout
 
-coverage_by_site.py -a supermatrix.phy
+coverage_by_site.py -a supermatrix.phy -f phylip-relaxed
+
+  optional matrix of coverage by site can be given with -m
+  sites are given as numbers (starting with 1)
+
+coverage_by_site.py -a supermatrix.aln -m matrix_cov_by_site.tab
 '''
 
 import sys
@@ -14,9 +21,10 @@ import gzip
 from collections import defaultdict,Counter
 from Bio import AlignIO
 
-def check_alignments(fullalignment, alignformat, printbysite):
+def check_alignments(fullalignment, alignformat, makeheader):
 	'''read large alignment, return the dict where key is species and value is number of gap-only sequences'''
 	gaphisto = defaultdict(int)
+	sitecov = {} # key is site number, value is coverage
 
 	if fullalignment.rsplit('.',1)[1]=="gz": # autodetect gzip format
 		opentype = gzip.open
@@ -25,17 +33,40 @@ def check_alignments(fullalignment, alignformat, printbysite):
 		opentype = open
 		print >> sys.stderr, "# reading alignment {}".format(fullalignment), time.asctime()
 	alignedseqs = AlignIO.read(opentype(fullalignment), alignformat)
+	numtaxa = len(alignedseqs)
 	allength = alignedseqs.get_alignment_length()
-	print >> sys.stderr, "# Alignment contains {} taxa for {} sites, including gaps".format( len(alignedseqs), allength )
+	print >> sys.stderr, "# Alignment contains {} taxa for {} sites, including gaps".format( numtaxa, allength )
+
+	constcounter = 0
+	gapsum = 0
+	charsum = 0
 
 	for i in range(allength):
 		aacounter = Counter( alignedseqs[:,i] ) # count all characters including gaps
 		gapchars = aacounter["-"] + aacounter["X"] + aacounter["?"]
 		gaphisto[ gapchars ] += 1
+		gapsum += gapchars
+		charsum += sum(aacounter.values())
 
-	print >> sys.stderr, "numGaps\tnumSites\tcoverage"
+		aaset = set(aacounter.keys())
+		aasetnogaps = set(aaset)
+		aasetnogaps.discard("-")
+
+		if aasetnogaps and len(aasetnogaps) == 1:
+			constcounter += 1
+
+		sitecov[i] = numtaxa-gapchars
+
+	if makeheader:
+		print >> sys.stdout, "numGaps\tnumSites\tcoverage"
 	for k in sorted(gaphisto.keys()):
-		print >> sys.stderr, "{}\t{}\t{}".format( k, gaphisto[k], len(alignedseqs)-k )
+		print >> sys.stdout, "{}\t{}\t{}".format( k, gaphisto[k], numtaxa-k )
+
+	print >> sys.stderr, "# {} total gaps out of {} characters".format( gapsum, charsum)
+	print >> sys.stderr, "# {:.2f} average gaps across {} sites".format( 1.0*gapsum/allength, allength)
+	print >> sys.stderr, "# {} constant sites (excluding any gaps at that site)".format(constcounter)
+
+	return sitecov
 
 def main(argv, wayout):
 	if not len(argv):
@@ -48,7 +79,12 @@ def main(argv, wayout):
 	parser.add_argument('-D','--matrix-delimiter', default="\t", help="delimiter for matrix file [default is tab]")
 	args = parser.parse_args(argv)
 
-	check_alignments(args.alignment, args.format, args.matrix_out)
+	sitecovdict = check_alignments(args.alignment, args.format, args.header)
+
+	if args.matrix_out:
+		with open(args.matrix_out,'w') as mo:
+			for k in sorted(sitecovdict.keys()):
+				print >> mo, "{}{}{}".format( k+1, args.matrix_delimiter, sitecovdict[k] )
 
 if __name__ == "__main__":
 	main(sys.argv[1:], sys.stdout)

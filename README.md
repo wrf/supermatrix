@@ -69,6 +69,26 @@ The script can be run in the terminal as:
 
 ![philippe2009_occupancy_matrix.png](https://github.com/wrf/supermatrix/blob/master/philippe2009_occupancy_matrix.png)
 
+## coverage_by_site.py ##
+Simple diagnostic for checking coverage by site, providing a histogram of frequency of number of gaps. Change format using `-f`. The script can accept gzipped files.
+
+`coverage_by_site.py -a alignments/philippe2009_FullAlignment.phy -f phylip-relaxed`
+
+Some results are summarized below. With the exception of the Borowiec 2015 study, which made use of entirely genomic data, none of them have a single site that is covered by all taxa. Even for the Borowiec study, this is only 180 sites out of 384k, so not even close to 1%.
+
+| Dataset         | Taxa |  Total sites | Max cov (gaps) | Sites w/ max | Avg gaps % |
+|-----------------|------|--------------|----------------|--------------|------------|
+| Dunn 2008       |  77  |     9918     |      70 (7)    |          21  |   42.60    |
+| Philippe 2009   |  55  |    30257     |      54 (1)    |          91  |   14.79    |
+| Ryan 2013 EST   |  70  |    88384     |      58 (12)   |          52  |   41.52    |
+| Nosenko 2013 R  |  71  |    14612     |      63 (8)    |         105  |   19.24    |
+| Nosenko 2013 nR |  71  |     9187     |      67 (4)    |           3  |   24.98    |
+| Whelan 2015 D10 |  70  |    59733     |      68 (2)    |          99  |   26.65    |
+| Whelan 2015 D16 |  70  |    23680     |      68 (2)    |          70  |   24.51    |
+| Borowiec 2015   |  36  |    384981    |      36 (0)    |         180  |    8.69    |
+| Cannon 2016     |  78  |    44896     |      75 (3)    |          59  |   24.25    |
+| Simion 2017     |  97  |    401632    |      95 (2)    |          28  |   38.07    |
+
 ## test alignments and occupancy matrices ##
 * Philippe et al (2009) dataset of 128 genes and 30k positions, from [Phylogenomics Revives Traditional Views on Deep Animal Relationships](https://www.sciencedirect.com/science/article/pii/S0960982209008057)
 * [Hejnol 2009](https://bitbucket.org/caseywdunn/hejnol_etal_2009) dataset of 1486 genes for 270k positions, from [Assessing the root of bilaterian animals with scalable phylogenomic methods](http://rspb.royalsocietypublishing.org/content/276/1677/4261)
