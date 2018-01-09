@@ -1,5 +1,9 @@
 # supermatrix #
-scripts to add new proteins to alignment using hmms, and simple diagnostics/visualizations
+scripts to add new proteins to an existing alignment using hmms, and simple diagnostics/visualizations
+
+The software here is intended to extend existing supermatrix alignments with new taxa, although a number of general purpose programs are also given here. If something does not work, please email me.
+
+Please also note that some similar diagnostic/manipulation tools exist in other packages by various people, including [AMAS](https://github.com/marekborowiec/AMAS), [SCaFoS](http://megasun.bch.umontreal.ca/Software/scafos/scafos.html) and [BuddySuite](https://github.com/biologyguy/BuddySuite)
 
 ## add_taxa_to_align.py ##
 Script to add new taxa to an existing protein supermatrix alignment. Proteins from new taxa are untrimmed, though a trimming step may be implemented. Input alignments could be in a number of formats, as a supermatrix with a separate partition file, or individual alignments as separate files.
@@ -8,7 +12,7 @@ Script to add new taxa to an existing protein supermatrix alignment. Proteins fr
 * Species names from `-T` and files from `-t` must be in the same order. 
 * Several folders with many intermediate files are generated (`-d`, `-E`, `-I`, and `-S`), in case it is needed to re-examine later.
 * For alignment format (`-f`), most cases *phylip* format is actually *phylip-relaxed*.
-* By default, the e-value cutoff is determined uniquely for each gene based on the lower limit of that hmm against the original gene set. This is to reduce the chance of finding out-paralogs. However, a static e-value cutoff for `hmmsearch` can be given using `--ev-threshold`, though this is not advised. See below for an explanation.
+* By default, the e-value cutoff is determined uniquely for each gene based on the lower limit of that hmm against the original gene set. This is to reduce the chance of finding out-paralogs. However, a static e-value cutoff for `hmmsearch` can be given using `--ev-threshold`, though this is not advised. See [below](https://github.com/wrf/supermatrix#determination-of-evalues-for-each-partition) for an explanation.
 * To generate the new supermatrix with the added taxa, specify the name of the new file with `-U`. A new partition file will be automatically generated if `-U` is specified.
 
 `add_taxa_to_align.py -a philippe2009_FullAlignment.phy -i philippe2009_partitions.txt -t ~/genomes/apis_mellifera/amel_OGSv3.2_pep.fa -T Apis_mellifera -f phylip-relaxed -U philippe2009_w_amel.aln`
@@ -92,6 +96,7 @@ Some results are summarized below. With the exception of the Borowiec 2015 study
 ## test alignments and occupancy matrices ##
 * Philippe et al (2009) dataset of 128 genes and 30k positions, from [Phylogenomics Revives Traditional Views on Deep Animal Relationships](https://www.sciencedirect.com/science/article/pii/S0960982209008057)
 * [Hejnol 2009](https://bitbucket.org/caseywdunn/hejnol_etal_2009) dataset of 1486 genes for 270k positions, from [Assessing the root of bilaterian animals with scalable phylogenomic methods](http://rspb.royalsocietypublishing.org/content/276/1677/4261)
+* [Schierwater 2009](https://doi.org/10.1371/journal.pbio.1000020.st004) datasets of 24 and 73 species for 17k sites, from [Concatenated Analysis Sheds Light on Early Metazoan Evolution and Fuels a Modern Urmetazoon Hypothesis](http://journals.plos.org/plosbiology/article?id=10.1371/journal.pbio.1000020)
 * [Erwin 2011](http://science.sciencemag.org/highwire/filestream/593073/field_highwire_adjunct_files/0/Databases_S1-S4.zip) dataset of 10 genes (7 protein + 3 rRNA, 6k sites), from [The Cambrian Conundrum: Early Divergence and Later Ecological Success in the Early History of Animals](http://science.sciencemag.org/content/334/6059/1091)
 * [Parfrey 2011](https://treebase.org/treebase-web/search/study/summary.html?id=10562) dataset of 16 genes, from [Broadly Sampled Multigene Analyses Yield a Well-resolved Eukaryotic Tree of Life](https://academic.oup.com/sysbio/article/59/5/518/1645425) and [Estimating the timing of early eukaryotic diversification with multigene molecular clocks](http://www.pnas.org/content/108/33/13624.full)
 * [Ryan 2013](https://research.nhgri.nih.gov/manuscripts/Baxevanis/science2013_supplement/) dataset of 406 genes ("EST set"), from [The Genome of the Ctenophore Mnemiopsis leidyi and Its Implications for Cell Type Evolution](http://science.sciencemag.org/content/342/6164/1242592)
