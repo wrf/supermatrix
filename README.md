@@ -78,23 +78,24 @@ Simple diagnostic for checking coverage by site, providing a histogram of freque
 
 `coverage_by_site.py -a alignments/philippe2009_FullAlignment.phy -f phylip-relaxed`
 
-Some results are summarized below. With the exception of the Borowiec 2015 study, which made use of entirely genomic data, none of them have a single site that is covered by all taxa. Even for the Borowiec study, this is only 180 sites out of 384k, so not even close to 1%.
+Some results are summarized below. With the exception of the Borowiec 2015 study, which made use of entirely genomic data, none of them have *a single site* that is covered by all taxa. Even for the Borowiec study, this is only 180 sites out of 384k, so not even close to 1%.
 
-| Dataset         | Taxa |  Total sites | Max cov (gaps) | Sites w/ max | Avg gaps % |
-|-----------------|------|--------------|----------------|--------------|------------|
-| Dunn 2008       |  77  |     9918     |      70 (7)    |          21  |   42.60    |
-| Philippe 2009   |  55  |    30257     |      54 (1)    |          91  |   14.79    |
-| Ryan 2013 EST   |  70  |    88384     |      58 (12)   |          52  |   41.52    |
-| Nosenko 2013 R  |  71  |    14612     |      63 (8)    |         105  |   19.24    |
-| Nosenko 2013 nR |  71  |     9187     |      67 (4)    |           3  |   24.98    |
-| Whelan 2015 D10 |  70  |    59733     |      68 (2)    |          99  |   26.65    |
-| Whelan 2015 D16 |  70  |    23680     |      68 (2)    |          70  |   24.51    |
-| Borowiec 2015   |  36  |    384981    |      36 (0)    |         180  |    8.69    |
-| Cannon 2016     |  78  |    44896     |      75 (3)    |          59  |   24.25    |
-| Simion 2017     |  97  |    401632    |      95 (2)    |          28  |   38.07    |
+| Dataset         | Taxa | Genes | Occupancy % | Total sites | Max cov (gaps) | Sites w/ max | Avg gaps % |
+|-----------------|------|-------|-------------|-------------|----------------|--------------|------------|
+| Dunn 2008       |  77  | 65    | 48.07 (2.6) |    9918     |      70 (7)    |          21  |   42.60    |
+| Hejnol 2009     |  94  | 1486  | 17.61 (1.2) |   270392    |      77 (17)   |          53  |   79.35    |
+| Philippe 2009   |  55  | 128   | 79.32 (2.6) |   30257     |      54 (1)    |          91  |   14.79    |
+| Ryan 2013 EST   |  70  | 406   | 46.18 (4.1) |   88384     |      58 (12)   |          52  |   41.52    |
+| Nosenko 2013 R  |  71  | 87    | 76.15 (2.2) |   14612     |      63 (8)    |         105  |   19.24    |
+| Nosenko 2013 nR |  71  | 35    | 70.14 (4.8) |    9187     |      67 (4)    |           3  |   24.98    |
+| Whelan 2015 D10 |  70  | 210   | 68.10 (7.8) |   59733     |      68 (2)    |          99  |   26.65    |
+| Whelan 2015 D16 |  70  | 87    | 71.48 (10.6)|   23680     |      68 (2)    |          70  |   24.51    |
+| Borowiec 2015   |  36  | 1080  | 79.84 (6.7) |   384981    |      36 (0)    |         180  |    8.69    |
+| Cannon 2016     |  78  | 212   | 80.25 (0.2) |   44896     |      75 (3)    |          59  |   24.25    |
+| Simion 2017     |  97  | 1719  | 65.88 (8.2) |   401632    |      95 (2)    |          28  |   38.07    |
 
 ## test alignments and occupancy matrices ##
-* Dunn 2008 dataset of 65 genes, from [Broad phylogenomic sampling improves resolution of the animal tree of life](https://www.nature.com/articles/nature06614)
+* [Dunn 2008](https://treebase.org/treebase-web/search/study/summary.html?id=2020) dataset of 65 genes, from [Broad phylogenomic sampling improves resolution of the animal tree of life](https://www.nature.com/articles/nature06614)
 * Philippe et al (2009) dataset of 128 genes and 30k positions, from [Phylogenomics Revives Traditional Views on Deep Animal Relationships](https://www.sciencedirect.com/science/article/pii/S0960982209008057)
 * [Hejnol 2009](https://bitbucket.org/caseywdunn/hejnol_etal_2009) dataset of 1486 genes for 270k positions, from [Assessing the root of bilaterian animals with scalable phylogenomic methods](http://rspb.royalsocietypublishing.org/content/276/1677/4261)
 * [Schierwater 2009](https://doi.org/10.1371/journal.pbio.1000020.st004) datasets of 24 and 73 species for 17k sites, from [Concatenated Analysis Sheds Light on Early Metazoan Evolution and Fuels a Modern Urmetazoon Hypothesis](http://journals.plos.org/plosbiology/article?id=10.1371/journal.pbio.1000020)
@@ -102,9 +103,9 @@ Some results are summarized below. With the exception of the Borowiec 2015 study
 * [Parfrey 2011](https://treebase.org/treebase-web/search/study/summary.html?id=10562) dataset of 16 genes, from [Broadly Sampled Multigene Analyses Yield a Well-resolved Eukaryotic Tree of Life](https://academic.oup.com/sysbio/article/59/5/518/1645425) and [Estimating the timing of early eukaryotic diversification with multigene molecular clocks](http://www.pnas.org/content/108/33/13624.full)
 * [Ryan 2013](https://research.nhgri.nih.gov/manuscripts/Baxevanis/science2013_supplement/) dataset of 406 genes ("EST set"), from [The Genome of the Ctenophore Mnemiopsis leidyi and Its Implications for Cell Type Evolution](http://science.sciencemag.org/content/342/6164/1242592)
 * [Nosenko 2013](https://data.ub.uni-muenchen.de/55/) datasets of 35 genes/9k sites and 87 genes/14k sites from 71 taxa, from [Deep metazoan phylogeny: When different genes tell different stories](http://www.sciencedirect.com/science/article/pii/S1055790313000298)
-* [Cannon 2014](http://datadryad.org/resource/doi:10.5061/dryad.20s7c) datasets of 299 and 185 genes, from [http://www.sciencedirect.com/science/article/pii/S0960982214012925](Phylogenomic Resolution of the Hemichordate and Echinoderm Clade)
-* [Misof 2014](http://datadryad.org/resource/doi:10.5061/dryad.3c0f1) dataset of 1478 genes for 584k sites, from [http://science.sciencemag.org/content/346/6210/763](Phylogenomics resolves the timing and pattern of insect evolution)
-* [Weigert 2014](https://datadryad.org/resource/doi:10.5061/dryad.g2qp5) dataset of 421 genes (the 428 partitions were guessed from the matrix, so 7 are wrong), from [Illuminating the base of the annelid tree using transcriptomics](https://academic.oup.com/mbe/article/31/6/1391/1009370)
+* [Cannon 2014](http://datadryad.org/resource/doi:10.5061/dryad.20s7c) datasets of 299 and 185 genes, from [Phylogenomic Resolution of the Hemichordate and Echinoderm Clade](http://www.sciencedirect.com/science/article/pii/S0960982214012925)
+* [Misof 2014](http://datadryad.org/resource/doi:10.5061/dryad.3c0f1) dataset of 1478 genes for 584k sites, from [Phylogenomics resolves the timing and pattern of insect evolution](http://science.sciencemag.org/content/346/6210/763)
+* [Weigert 2014](https://datadryad.org/resource/doi:10.5061/dryad.g2qp5) dataset of 421 genes for 104k sites, from [Illuminating the base of the annelid tree using transcriptomics](https://academic.oup.com/mbe/article/31/6/1391/1009370)
 * [Whelan 2015](https://figshare.com/articles/Error_signal_and_the_placement_of_Ctenophora_sister_to_all_other_animals/1334306) Dataset-10 (for Fig 3), of 210 genes and 59k sites, from [Error, signal, and the placement of Ctenophora sister to all other animals](http://www.pnas.org/content/112/18/5773.full)
 * [Zapata 2015](https://bitbucket.org/caseywdunn/cnidaria2014) dataset of 1262 genes for 365k positions, from [Phylogenomic Analyses Support Traditional Relationships within Cnidaria](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0139068)
 * [Borowiec 2015](http://datadryad.org/resource/doi:10.5061/dryad.k6tq2) dataset of 1080 genes for 384k positions from 36 taxa with genomes, from [Extracting phylogenetic signal and accounting for bias in whole-genome data sets supports the Ctenophora as sister to remaining Metazoa](https://bmcgenomics.biomedcentral.com/articles/10.1186/s12864-015-2146-4)
