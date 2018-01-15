@@ -2,22 +2,25 @@
 #
 # guess_partitions.py  created 2018-01-13
 
-'''guess_partitions.py  last modified 2018-01-13
+'''guess_partitions.py  last modified 2018-01-15
   check a supermatrix and guess partitions based on changes of occupancy
 
 guess_partitions.py -a supermatrix.phy -f phylip-relaxed
 
   set minimum number of changes to detect the site using -p
-  increase the number until a plausible number of partitions becomes evident
+    increase the number until a plausible number of partitions becomes evident
+
+  if missing genes have a unique character, like ?, use -q or -x
+    as this is substantially more reliable than regular gaps
 
   output consists of three columns, of partition, length, and number of gaps
-  between that site and the site immediately following
-  so a line like:
+    between that site and the site immediately following
+    so a line like:
 
 1:360   360     25
 
   means the partition is predicted from site 1 to 360, where 25 letters or
-  gaps change between site 360 and 361
+    gaps change between site 360 and 361
 
   some manual editing may be required due to actual gaps
 
@@ -33,13 +36,13 @@ import gzip
 from collections import defaultdict,Counter
 from Bio import AlignIO
 
-def is_gap(site):
-	if site=="-" or site=="?" or site=="X":
+def is_gap(site, gapset):
+	if site in gapset:
 		return 1
 	else:
 		return 0
 
-def check_alignments(fullalignment, alignformat, minlength=5, threshold=2):
+def check_alignments(fullalignment, alignformat, gapset, minlength=5, peakthreshold=2):
 	'''read large alignment, return the dict where key is species and value is number of gap-only sequences'''
 	gaphisto = defaultdict(int)
 	sitecov = {} # key is site number, value is coverage
@@ -64,10 +67,10 @@ def check_alignments(fullalignment, alignformat, minlength=5, threshold=2):
 		firstsite = alignedseqs[:,i]
 		secondsite = alignedseqs[:,i+1]
 		for a1,a2 in zip(firstsite, secondsite):
-			if is_gap(a1) + is_gap(a2) == 1:
+			if is_gap(a1, gapset) + is_gap(a2, gapset) == 1:
 				changecount += 1
 		switchbysite[i] = changecount
-		if changecount > threshold:
+		if changecount > peakthreshold:
 			partlength = i+1-lastpos
 			if partlength < minlength: # if shorter than 5, skip and merge with next
 				continue
@@ -87,9 +90,17 @@ def main(argv, wayout):
 	parser.add_argument('-f','--format', default="fasta", help="alignment format [fasta]")
 	parser.add_argument('-p','--peak-minimum', default=2, type=int, help="minimum peak height [2]")
 	parser.add_argument('--len-minimum', default=5, type=int, help="minimum length to merge with next partition [5]")
+	parser.add_argument('-q','--question-missing', action="store_true", help="use only question mark ? as missing gene, incompatible with -x")
+	parser.add_argument('-x','--x-missing', action="store_true", help="use only X as missing gene, incompatible with -q")
 	args = parser.parse_args(argv)
 
-	check_alignments(args.alignment, args.format, args.len_minimum, args.peak_minimum)
+	GAPSET = "-?X"
+	if args.question_missing: # reassign as only question mark
+		GAPSET = "?"
+	elif args.x_missing:
+		GAPSET = "X"
+
+	check_alignments(args.alignment, args.format, GAPSET, args.len_minimum, args.peak_minimum)
 
 if __name__ == "__main__":
 	main(sys.argv[1:], sys.stdout)
