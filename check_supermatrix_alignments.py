@@ -2,7 +2,7 @@
 #
 # check_supermatrix_alignments.py created 2017-03-13
 
-'''check_supermatrix_alignments.py v1.2 2017-11-15
+'''check_supermatrix_alignments.py v1.2 2017-01-11
 tool to quickly check for abnormal sequences in fasta alignments
 
 checknogalignments.py -a matrix.phy -p partitions.txt
@@ -50,6 +50,7 @@ def check_alignments(fullalignment, alignformat, partitions, makematrix=False):
 	'''read large alignment, return the dict where key is species and value is number of gap-only sequences'''
 	gapdict = {} # must set all values to zero in order to not skip full taxa
 	halfgapdict = defaultdict(int)
+	totaloccs = defaultdict(int)
 
 	occmatrix = [] if makematrix else None
 
@@ -78,10 +79,13 @@ def check_alignments(fullalignment, alignformat, partitions, makematrix=False):
 			elif lettercounts["-"] >= seqlen * 0.5: # partial means half or more of sequence is gaps
 				halfgapdict[species] += 1
 				occupancyscore = 1 # set to 1 if partial
+			totaloccs[occupancyscore] += 1
 
 			if occmatrix: # if building matrix, add that value to the matrix at sequence i
 				occmatrix[i].append(str(occupancyscore))
-	print >> sys.stderr, "# split {} taxa alignment by partitions".format(len(gapdict)), time.asctime()
+
+	totalspots = sum(totaloccs.values())
+	print >> sys.stderr, "# Matrix has {} ({:.2f}%) complete and {} ({:.2f}%) partial out of {} total genes".format( totaloccs[2], 100.0*totaloccs[2]/totalspots, totaloccs[1], 100.0*totaloccs[1]/totalspots, totalspots ), time.asctime()
 	return gapdict, halfgapdict, occmatrix
 
 def main(argv, wayout):
