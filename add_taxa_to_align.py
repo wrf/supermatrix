@@ -98,11 +98,8 @@ def run_hmmsearch(HMMSEARCH, hmmprofile, fastafile, threadcount, hmmlog, hmmdir,
 
 def hmmtable_to_seqids(hmmtable, evaluecutoff, bitlencutoff, seqdict, verbose ):
 	'''parse hits from hmm tblout and return a list of kept protein IDs'''
-#                                                               --- full sequence ---- --- best 1 domain ---- --- domain number estimation ----
-# 0                  1          2                    3            4        5      6      7        8      9
-# target name        accession  query name           accession    E-value  score  bias   E-value  score  bias   exp reg clu  ov env dom rep inc description of target
-#10 11  12   13 14  15  16  17  18
-#------------------- ---------- -------------------- ---------- --------- ------ ----- --------- ------ -----   --- --- --- --- --- --- --- --- ---------------------
+	# here domain-wise table output is processed, so that length of the hit can be directly checked
+	# such information is not kept in the regular table output
 	seqids_to_keep = {} # key is seqid, value is bits per length
 	maxscore = 0
 	maxbpl = 0
@@ -184,12 +181,19 @@ def make_seq_length_dict(sequencefile):
 
 def get_evalue_from_hmm(HMMSEARCH, hmmprofile, alignment, threadcount, hmmevaluedir, errorlog, evcorrection, bplcorrection):
 	'''get dynamic evalue and bitscore/length cutoff from alignment and hmm'''
+#                                                               --- full sequence ---- --- best 1 domain ---- --- domain number estimation ----
+# 0                  1          2                    3            4        5      6      7        8      9
+# target name        accession  query name           accession    E-value  score  bias   E-value  score  bias   exp reg clu  ov env dom rep inc description of target
+#10 11  12   13 14  15  16  17  18
+#------------------- ---------- -------------------- ---------- --------- ------ ----- --------- ------ -----   --- --- --- --- --- --- --- --- ---------------------
+
 	# DEGAP FASTA FILE
 	fasta_unaligned = os.path.join( hmmevaluedir, "{}_no_gaps.fasta".format(os.path.splitext(os.path.basename(alignment))[0] ) )
 	unalign_sequences(fasta_unaligned, alignment, notrim=True, calculatemedian=False, removeempty=True)
 	seqlendict = make_seq_length_dict(fasta_unaligned)
 
 	# RUN HMMSEARCH
+	# regular table output is used here, as all seqs are assumed to be correct
 	hmmtbl_output = os.path.join( hmmevaluedir, os.path.basename( "{}_self_hmm.tab".format( os.path.splitext(alignment)[0] ) ) )
 	hmmsearch_args = [HMMSEARCH,"--cpu", str(threadcount), "-E", "0.0001", "--tblout", hmmtbl_output, hmmprofile, fasta_unaligned]
 	print >> errorlog, "{}\n{}".format(time.asctime(), " ".join(hmmsearch_args) )
