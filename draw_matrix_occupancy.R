@@ -5,7 +5,7 @@
 args = commandArgs(trailingOnly=TRUE)
 
 inputfile = args[1]
-#inputfile = "~/git/supermatrix/philippe2009_occupancy_matrix.tab"
+#inputfile = "~/git/supermatrix/matrix/philippe2009_occupancy_matrix.tab"
 outputfile = gsub("([\\w/]+)\\....","\\1.pdf",inputfile,perl=TRUE)
 
 # read table assuming tab delimited
@@ -22,7 +22,8 @@ occupancycolors = c("#fec44f","#addd8e","#FFFFFF","#ea4f12", "#477df6")
 m1 = matrix(unlist(occmatrix), ncol=taxa, byrow=TRUE)
 m2 = m1[,ncol(m1):1]
 
-
+occhist = hist(m2, breaks=c(-3,-2,-1,0,1,2), plot=FALSE)
+gsum = sum(occhist$counts)
 # #
 # COLOR TAXA BASED ON OCCUPANCY
 # #
@@ -74,7 +75,7 @@ par(xpd=TRUE)
 if (min(m2)<0) {
 legend(-35,-1, legend=c("In m2", "In m1", "Absent","Mismatch","Same"), pch=22, pt.bg=occupancycolors, cex=1.1, ncol=2)
 } else {
-legend(-24,-1, legend=c("Absent","Incomplete","Present"), pch=22, pt.bg=occupancycolors[3:5], cex=1.1)
+legend(-32,-1, legend=c( paste("Absent (",round(occhist$counts[3]/gsum*100),"%)", sep=""), paste("Incomplete (",round(occhist$counts[4]/gsum*100),"%)", sep="") , paste("Present (",round(occhist$counts[5]/gsum*100),"%)", sep="") ), pch=22, pt.bg=occupancycolors[3:5], cex=1.1)
 }
 
 dev.off()
