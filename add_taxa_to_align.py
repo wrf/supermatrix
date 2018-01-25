@@ -2,7 +2,7 @@
 # add_taxa_to_align.py v1.0 created 2016-12-08
 
 '''
-add_taxa_to_align.py v1.4 2017-11-17
+add_taxa_to_align.py v1.4 2018-01-25
     add new taxa to an existing untrimmed alignment
 
     to add proteins from species1 and species2 to alignments prot1 and prot2:
@@ -349,6 +349,7 @@ def main(argv, wayout, errorlog):
 	parser.add_argument('--mafft', default="mafft", help="path to mafft binary [default is in PATH]")
 	parser.add_argument('--hmmbin', default="", help="path to hmm binaries, should be a directory containing hmmbuild and hmmsearch [default is ./]")
 	parser.add_argument('--fasttree', default="FastTreeMP", help="path to fasttree binary [default is in PATH]")
+	parser.add_argument('--no-gene-trees', action="store_true", help="skip the FastTree step")
 	args = parser.parse_args(argv)
 
 	ALIGNER = os.path.expanduser(args.mafft)
@@ -369,15 +370,28 @@ def main(argv, wayout, errorlog):
 	else:
 		raise OSError("ERROR: Unknown new protein files, exiting")
 
+	### CHECK IF ALL FILES EXIST
+	missingfiles = []
+	for protfile in newtaxafiles:
+		if not os.path.isfile(protfile):
+			missingfiles.append(protfile)
+	if missingfiles: # if any are missing
+			raise OSError("ERROR: Cannot find new protein files:\n{}\nexiting".format("\n".join(missingfiles)))
+
 	if args.taxa_names:
 		if len(args.taxa_names)!=len(args.taxa):
-			raise ValueError("ERROR: number of taxa names does not match number of files, exiting")
+			for tfile, tname in zip(args.taxa, args.taxa_names):
+				print >> errorlog, "{}\t{}".format(tfile, tname)
+			raise ValueError("ERROR: number of taxa names ({}) does not match number of files ({}), exiting".format(len(args.taxa_names),len(args.taxa) ) )
 		else:
 			print >> errorlog, "# Using {} pairs of files and taxon names".format(len(args.taxa))
 			for tfile, tname in zip(args.taxa, args.taxa_names):
 				print >> errorlog, "{}\t{}".format(tfile, tname)
 	if len(args.taxa_names) != len(set(args.taxa_names)):
 		raise ValueError("ERROR: duplicate taxa names, check -T, exiting")
+
+	### TIME STRING FOR ALL NEW DIRECTORIES
+	timestring = time.strftime("%Y%m%d-%H%M%S")
 
 	### SINGLE PARTITIONED ALIGNMENT TO BE EXTENDED
 	if args.partition: # if partitioning, do this first
@@ -387,12 +401,13 @@ def main(argv, wayout, errorlog):
 			raise OSError("ERROR: Cannot find {} alignment for partitions, exiting".format(args.alignments[0]) )
 		else:
 			partitions = get_partitions(args.partition, errorlog)
-			if not os.path.isdir(args.partition_dir):
-				if os.path.isfile(args.partition_dir):
-					raise OSError("ERROR: Directory {} exists as a file, cannot create, exiting".format(args.partition_dir) )
+			part_dir = os.path.abspath( "{}_{}".format( timestring, args.partition_dir ) )
+			if not os.path.isdir(part_dir):
+				if os.path.isfile(part_dir):
+					raise OSError("ERROR: Directory {} exists as a file, cannot create, exiting".format(part_dir) )
 				else:
-					os.mkdir(args.partition_dir)
-			alignfiles = make_alignments(args.alignments[0], args.format, partitions, args.partition_dir, errorlog)
+					os.mkdir(part_dir)
+			alignfiles = make_alignments(args.alignments[0], args.format, partitions, part_dir, errorlog)
 	### ALIGNMENTS TO BE EXTENDED AS MULTIPLE FILES
 	else: # otherwise treat alignments as normal, either directory or single file
 		if os.path.isdir(args.alignments[0]):
@@ -405,7 +420,6 @@ def main(argv, wayout, errorlog):
 			raise OSError("ERROR: Unknown alignment files, exiting")
 
 	### DIRECTORY FOR NEW OUTPUT
-	timestring = time.strftime("%Y%m%d-%H%M%S")
 	new_aln_dir = os.path.abspath( "{}_{}".format( timestring, args.directory ) )
 	if not os.path.exists(new_aln_dir):
 		os.mkdir(new_aln_dir)
@@ -501,7 +515,8 @@ def main(argv, wayout, errorlog):
 			supermatrix = newaligned
 		else:
 			supermatrix += newaligned
-		nt_tree = run_tree(FASTTREEMP, nt_aligned, errorlog)
+		if not args.no_gene_trees:
+			nt_tree = run_tree(FASTTREEMP, nt_aligned, errorlog)
 
 	### WRITE SUPERMATRIX AND PARTITIONS
 	if args.supermatrix:
