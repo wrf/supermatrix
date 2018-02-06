@@ -407,6 +407,7 @@ def main(argv, wayout, errorlog):
 					raise OSError("ERROR: Directory {} exists as a file, cannot create, exiting".format(part_dir) )
 				else:
 					os.mkdir(part_dir)
+					print >> errorlog, "# Creating directory {}".format(part_dir), time.asctime()
 			alignfiles = make_alignments(args.alignments[0], args.format, partitions, part_dir, errorlog)
 	### ALIGNMENTS TO BE EXTENDED AS MULTIPLE FILES
 	else: # otherwise treat alignments as normal, either directory or single file

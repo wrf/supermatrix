@@ -18,6 +18,7 @@ import sys
 if len(sys.argv)<2:
 	print >> sys.stderr, __doc__
 else:
+	partsum = 0
 	partitionlist = [] # empty list, tuples will be added then sorted
 	for line in open(sys.argv[1],'r'):
 		line = line.strip()
@@ -27,5 +28,10 @@ else:
 				part = part.strip()
 				partsublist = [int(p) for p in part.split('-')]
 				partitionlist.append(partsublist)
+				partsum += partsublist[1] - partsublist[0] + 1
 	partitionlist.sort()
+	# last value should be equal to sum of parts
+	lastvalue = partitionlist[-1][1]
+	if lastvalue!=partsum:
+		print >> sys.stderr, "WARNING: SUM {} DOES NOT EQUAL LAST PARTITION {}".format(partsum, lastvalue)
 	print >> sys.stdout, ",".join( [ "{}:{}".format(*p) for p in partitionlist ] )
