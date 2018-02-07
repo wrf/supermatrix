@@ -2,7 +2,7 @@
 #
 # coverage_by_site.py  created 2017-11-27
 
-'''coverage_by_site.py  last modified 2018-01-08
+'''coverage_by_site.py  last modified 2018-02-07
   quick diagnostic of coverage
   reports histogram of number of sites with x coverage to stdout
 
@@ -70,8 +70,9 @@ def check_alignments(fullalignment, alignformat, makeheader, trimlength):
 	for k in sorted(gaphisto.keys()):
 		print >> sys.stdout, "{}\t{}\t{}".format( k, gaphisto[k], numtaxa-k )
 
-	print >> sys.stderr, "# {} total gaps out of {} characters".format( gapsum, charsum)
-	print >> sys.stderr, "# {:.2f} average gaps across {} sites".format( 1.0*gapsum/effective_sites, effective_sites)
+	print >> sys.stderr, "# {} total gaps out of {} characters ({:.2f}% total)".format( gapsum, charsum, 100.0 * gapsum/charsum)
+	averagegaps = 1.0*gapsum/effective_sites
+	print >> sys.stderr, "# {:.2f} ({:.2f}% of {} taxa) average gaps per site, for {} sites".format( averagegaps, 100*averagegaps/numtaxa, numtaxa, effective_sites)
 	print >> sys.stderr, "# {} constant sites (excluding any gaps at that site)".format(constcounter)
 
 	return sitecov
