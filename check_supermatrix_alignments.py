@@ -2,7 +2,7 @@
 #
 # check_supermatrix_alignments.py created 2017-03-13
 
-'''check_supermatrix_alignments.py v1.2 2017-01-11
+'''check_supermatrix_alignments.py v1.2 2018-02-09
 tool to quickly check for abnormal sequences in fasta alignments
 
 checknogalignments.py -a matrix.phy -p partitions.txt
@@ -46,7 +46,7 @@ def get_partitions(partitionfile):
 	print >> sys.stderr, "# read {} partitions from {}".format(len(partitions), partitionfile), time.asctime()
 	return partitions
 
-def check_alignments(fullalignment, alignformat, partitions, makematrix=False):
+def check_alignments(fullalignment, alignformat, partitions, makematrix=False, writepercent=False):
 	'''read large alignment, return the dict where key is species and value is number of gap-only sequences'''
 	gapdict = {} # must set all values to zero in order to not skip full taxa
 	halfgapdict = defaultdict(int)
@@ -72,20 +72,28 @@ def check_alignments(fullalignment, alignformat, partitions, makematrix=False):
 			species = seqrec.id
 			seqlen = len(seqrec.seq)
 			lettercounts = Counter(str(seqrec.seq).replace("X","-"))
-			occupancyscore = 2 # by default is present, reassign if absent or partial
-			if lettercounts["-"] == seqlen or lettercounts["?"] == seqlen: # seq is all gaps, so no seq
-				gapdict[species] += 1
-				occupancyscore = 0 # set to 0 if all gaps
-			elif lettercounts["-"] >= seqlen * 0.5: # partial means half or more of sequence is gaps
-				halfgapdict[species] += 1
-				occupancyscore = 1 # set to 1 if partial
+			gapcount = lettercounts.get("-",0) + lettercounts.get("?",0)
+			if writepercent: # write integer of percent covered by each gene
+				occupancyscore = 100 - 100*gapcount/seqlen
+				gapdict[species] += gapcount
+			else: # meaning stick with absent-partial-present scheme
+				occupancyscore = 2 # by default is present, reassign if absent or partial
+				if gapcount == seqlen: # seq is all gaps, so no seq
+					gapdict[species] += 1
+					occupancyscore = 0 # set to 0 if all gaps
+				elif gapcount >= seqlen * 0.5: # partial means half or more of sequence is gaps
+					halfgapdict[species] += 1
+					occupancyscore = 1 # set to 1 if partial
 			totaloccs[occupancyscore] += 1
 
 			if occmatrix: # if building matrix, add that value to the matrix at sequence i
 				occmatrix[i].append(str(occupancyscore))
 
 	totalspots = sum(totaloccs.values())
-	print >> sys.stderr, "# Matrix has {} ({:.2f}%) complete and {} ({:.2f}%) partial out of {} total genes".format( totaloccs[2], 100.0*totaloccs[2]/totalspots, totaloccs[1], 100.0*totaloccs[1]/totalspots, totalspots ), time.asctime()
+	if writepercent:
+		print >> sys.stderr, "# Matrix has {} ({:.2f}%) complete and {} ({:.2f}%) empty out of {} total genes".format( totaloccs[100], 100.0*totaloccs[100]/totalspots, totaloccs[0], 100.0*totaloccs[0]/totalspots, totalspots ), time.asctime()
+	else:
+		print >> sys.stderr, "# Matrix has {} ({:.2f}%) complete and {} ({:.2f}%) partial out of {} total genes".format( totaloccs[2], 100.0*totaloccs[2]/totalspots, totaloccs[1], 100.0*totaloccs[1]/totalspots, totalspots ), time.asctime()
 	return gapdict, halfgapdict, occmatrix
 
 def main(argv, wayout):
@@ -99,10 +107,11 @@ def main(argv, wayout):
 	parser.add_argument('-D','--matrix-delimiter', default="\t", help="delimiter for matrix file [default is tab]")
 	parser.add_argument('-T','--matrix-tree', help="optional Nexus-format tree to reorder matrix")
 	parser.add_argument('-p','--partition', help="partition file for splitting large alignments")
+	parser.add_argument('--percent', action="store_true", help="report values in matrix by percent complete")
 	args = parser.parse_args(argv)
 
 	partitions = get_partitions(args.partition)
-	gapdict, halfgaps, occmatrix = check_alignments(args.alignment, args.format, partitions, args.matrix_out)
+	gapdict, halfgaps, occmatrix = check_alignments(args.alignment, args.format, partitions, args.matrix_out, args.percent)
 	numparts = len(partitions)
 
 	if args.matrix_out and occmatrix:
@@ -127,12 +136,13 @@ def main(argv, wayout):
 				for occbysplist in occmatrix:
 					print >> mo, args.matrix_delimiter.join(occbysplist)
 
-	if args.header:
-		#                  0           1           2    3     4      5
-		print >> wayout, "Species\tPartitions\tMissing\tM%\tPartial\tP%"
+	if not args.percent: # only print output if not in percent mode
+		if args.header:
+			#                  0           1           2    3     4      5
+			print >> wayout, "Species\tPartitions\tMissing\tM%\tPartial\tP%"
 
-	for k,v in sorted(gapdict.iteritems(), reverse=True, key=lambda x: x[1]):
-		print >> wayout, "{}\t{}\t{}\t{:.2f}\t{}\t{:.2f}".format(k, numparts, v, v*100.0/numparts, halfgaps[k], halfgaps[k]*100.0/numparts)
+		for k,v in sorted(gapdict.iteritems(), reverse=True, key=lambda x: x[1]):
+			print >> wayout, "{}\t{}\t{}\t{:.2f}\t{}\t{:.2f}".format(k, numparts, v, v*100.0/numparts, halfgaps[k], halfgaps[k]*100.0/numparts)
 
 if __name__ == "__main__":
 	main(sys.argv[1:], sys.stdout)
