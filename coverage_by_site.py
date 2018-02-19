@@ -2,7 +2,7 @@
 #
 # coverage_by_site.py  created 2017-11-27
 
-'''coverage_by_site.py  last modified 2018-02-07
+'''coverage_by_site.py  last modified 2018-02-13
   quick diagnostic of coverage
   reports histogram of number of sites with x coverage to stdout
 
@@ -52,6 +52,8 @@ def check_alignments(fullalignment, alignformat, makeheader, trimlength):
 		gaphisto[ gapchars ] += 1 # key is sum of gaps, value is number of sites with n gaps
 		gapsum += gapchars
 		charsum += sum(aacounter.values())
+		if gapchars==numtaxa:
+			print >> sys.stderr, "SITE {} CONTAINS ONLY GAPS".format(i)
 
 		aaset = set(aacounter.keys())
 		aasetnogaps = set(aaset)
