@@ -2,7 +2,7 @@
 #
 # split_supermatrix_to_genes.py created 2018-02-12
 
-'''split_supermatrix_to_genes.py v1.0 2018-02-12
+'''split_supermatrix_to_genes.py v1.0 2018-02-14
 tool to re-partition supermatrices into fasta files for each gene
 
 split_supermatrix_to_genes.py -a matrix.phy -p partitions.txt -d aln_dir -f phylip-relaxed
@@ -33,7 +33,7 @@ def get_partitions(partitionfile):
 	print >> sys.stderr, "# read {} partitions from {}".format(len(partitions), partitionfile), time.asctime()
 	return partitions
 
-def split_genes(fullalignment, alignformat, alndir, partitions):
+def split_genes(fullalignment, alignformat, alndir, partitions, fileprefix):
 	'''read large alignment and write one fasta file for each taxa containing all proteins'''
 	if fullalignment.rsplit('.',1)[1]=="gz": # autodetect gzip format
 		opentype = gzip.open
@@ -49,7 +49,7 @@ def split_genes(fullalignment, alignformat, alndir, partitions):
 	for part in partitions:
 		alignpart = alignedseqs[:, part[0]-1:part[1] ] # alignment of each partition only
 		maxdigits = str(len(str(al_length)))
-		bufferedpartstring = "gene_{:0"+maxdigits+"}_{:0"+maxdigits+"}.fasta"
+		bufferedpartstring = fileprefix + "_{:0"+maxdigits+"}_{:0"+maxdigits+"}.aln"
 		genefilename = "{}".format( os.path.join(alndir, bufferedpartstring.format(*part)) )
 		AlignIO.write(alignpart, genefilename, "fasta")
 		filecounter += 1
@@ -62,6 +62,7 @@ def main(argv, wayout):
 	parser.add_argument('-a','--alignment', help="supermatrix alignment")
 	parser.add_argument('-d','--gene-directory', default="./", help="optional directory for alignment files")
 	parser.add_argument('-f','--format', default="fasta", help="alignment format [fasta]")
+	parser.add_argument('-g','--gene-prefix', default="gene", help="prefix for each file name [gene]")
 	parser.add_argument('-p','--partition', help="partition file for splitting large alignments")
 	args = parser.parse_args(argv)
 
@@ -72,7 +73,7 @@ def main(argv, wayout):
 			os.mkdir(args.gene_directory)
 
 	partitions = get_partitions(args.partition)
-	split_genes(args.alignment, args.format, args.gene_directory, partitions)
+	split_genes(args.alignment, args.format, args.gene_directory, partitions, args.gene_prefix)
 
 if __name__ == "__main__":
 	main(sys.argv[1:], sys.stdout)
