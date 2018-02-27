@@ -2,7 +2,7 @@
 #
 # check_supermatrix_alignments.py created 2017-03-13
 
-'''check_supermatrix_alignments.py v1.2 2018-02-09
+'''check_supermatrix_alignments.py v1.2 2018-02-27
 tool to quickly check for abnormal sequences in fasta alignments
 
 checknogalignments.py -a matrix.phy -p partitions.txt
@@ -22,6 +22,12 @@ checknogalignments.py -a matrix.phy -p partitions.txt -m occupancy_matrix.tab
 
     matrix order can be changed based on a phylogenetic tree in nexus format
 checknogalignments.py -a matrix.phy -p partitions.txt -m occupancy_matrix.tab -T tree.nex
+
+    to optionally include gene names in the matrix, use --pair-stats
+    pair stats file is the output of align_pair_stats.py, or any file as:
+1-1000    GENE
+    or can include species or SwissProt ID
+Genus_species_1-1000    sp|123456|GENE
 '''
 
 import sys
@@ -45,6 +51,22 @@ def get_partitions(partitionfile):
 				partitions.append(alignindex)
 	print >> sys.stderr, "# read {} partitions from {}".format(len(partitions), partitionfile), time.asctime()
 	return partitions
+
+def parts_to_genes(pairstatsfile):
+	'''read tabular pair-wise gene stats, return a dict where key is partition and value is gene'''
+	part_to_gene = {}
+	print >> sys.stderr, "# reading partitions and gene names from {}".format(pairstatsfile), time.asctime()
+	for line in open(pairstatsfile,'r'):
+		line = line.strip()
+		if line:
+			lsplits = line.split("\t")
+			if lsplits[0]=="partition": # skip first line
+				continue
+			gene = lsplits[1].split("|")[-1].replace("_HUMAN","")
+			partition = tuple( int(i) for i in lsplits[0].split("_")[-1].split("-") )
+			part_to_gene[partition] = gene
+	print >> sys.stderr, "# found {} gene names".format(len(part_to_gene)), time.asctime()
+	return part_to_gene
 
 def check_alignments(fullalignment, alignformat, partitions, makematrix=False, writepercent=False):
 	'''read large alignment, return the dict where key is species and value is number of gap-only sequences'''
@@ -108,9 +130,11 @@ def main(argv, wayout):
 	parser.add_argument('-T','--matrix-tree', help="optional Nexus-format tree to reorder matrix")
 	parser.add_argument('-p','--partition', help="partition file for splitting large alignments")
 	parser.add_argument('--percent', action="store_true", help="report values in matrix by percent complete")
+	parser.add_argument('--pair-stats', help="pair stats file for gene names, to use alternate matrix header format")
 	args = parser.parse_args(argv)
 
 	partitions = get_partitions(args.partition)
+	genenames = parts_to_genes(args.pair_stats) if args.pair_stats else None
 	gapdict, halfgaps, occmatrix = check_alignments(args.alignment, args.format, partitions, args.matrix_out, args.percent)
 	numparts = len(partitions)
 
@@ -118,7 +142,10 @@ def main(argv, wayout):
 		print >> sys.stderr, "# writing matrix to {}".format(args.matrix_out), time.asctime()
 		with open(args.matrix_out,'w') as mo:
 			# generate header line
-			headerline = ["Species"] + ["{}-{}".format(*part) for part in partitions]
+			if args.pair_stats:
+				headerline = ["Species"] + ["{}--{}".format(part[0], genenames.get(part,"None")) for part in partitions]
+			else:
+				headerline = ["Species"] + ["{}-{}".format(*part) for part in partitions]
 			print >> mo, args.matrix_delimiter.join(headerline)
 			# print occupancy by each species
 			if args.matrix_tree: # use order from a rooted nexus-format tree
