@@ -1,0 +1,10 @@
+Acropora_millepora	Acropora_OTU
+Branchiostoma_floridae	Branchiostoma_OTU
+Crassostrea_gigas	Crassostrea_OTU
+Daphnia_pulex	Daphnia_OTU
+Ephydatia_muelleri	Ephydatia_OTU
+Euperipatoides_kanangrensis	Euperipatoides_OTU
+Euprymna_scolopes	Euprymna_OTU
+Helobdella_robusta	Helobdella_OTU
+Oscarella_carmela	Oscarella_OTU
+Suberites_domuncula	Suberites_OTU
