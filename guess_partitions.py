@@ -2,7 +2,7 @@
 #
 # guess_partitions.py  created 2018-01-13
 
-'''guess_partitions.py  last modified 2018-01-15
+'''guess_partitions.py  last modified 2018-03-07
   check a supermatrix and guess partitions based on changes of occupancy
 
 guess_partitions.py -a supermatrix.phy -f phylip-relaxed
@@ -71,7 +71,8 @@ def check_alignments(fullalignment, alignformat, gapset, minlength=5, peakthresh
 				changecount += 1
 		switchbysite[i] = changecount
 		if changecount > peakthreshold:
-			partlength = i+1-lastpos
+			# i + 2 (add 1 for last index, add 1 to include the site itself) - lastpos
+			partlength = i+2-lastpos
 			if partlength < minlength: # if shorter than 5, skip and merge with next
 				continue
 			peakcount += 1

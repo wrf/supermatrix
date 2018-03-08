@@ -25,7 +25,7 @@ Binaries are assumed to be in the user's PATH. This can be changed with the opti
 
 `add_taxa_to_align.py -a philippe2009_FullAlignment.phy -i philippe2009_partitions.txt -t ~/genomes/apis_mellifera/amel_OGSv3.2_pep.fa -T Apis_mellifera -f phylip-relaxed -U philippe2009_w_amel.aln --mafft ~/programs/mafft --hmmbin ~/programs/`
 
-All messages and reports can be captured as standard error (using `2>`), such as `2> philippe2009_w_new_taxa.log`. It is recommended to do this.
+All messages and reports can be captured as standard error (using `2>`), such as `2> philippe2009_w_new_taxa.log`. It is recommended to do this (possibly in verbose mode `-v`) as the log contains information as to why every hmmsearch hit was selected or rejected, and it may be necessary to manually correct some sequences.
 
 ## join_alignments ##
 Join multiple individual alignment files into a supermatrix, allowing for only one occurence of any taxa in each alignment. Names must be the same, though can have unique identifiers (like gene names or numbers) as long as they can be systematically split from the taxon names (using `-d`).
@@ -110,6 +110,7 @@ Some results are summarized below. With the exception of the Borowiec 2015 study
 * [Schierwater 2009](https://doi.org/10.1371/journal.pbio.1000020.st004) datasets of 24 and 73 species for 17k sites, from [Concatenated Analysis Sheds Light on Early Metazoan Evolution and Fuels a Modern Urmetazoon Hypothesis](http://journals.plos.org/plosbiology/article?id=10.1371/journal.pbio.1000020)
 * [Erwin 2011](http://science.sciencemag.org/highwire/filestream/593073/field_highwire_adjunct_files/0/Databases_S1-S4.zip) dataset of 10 genes (7 protein + 3 rRNA, 6k sites), from [The Cambrian Conundrum: Early Divergence and Later Ecological Success in the Early History of Animals](http://science.sciencemag.org/content/334/6059/1091)
 * [Parfrey 2011](https://treebase.org/treebase-web/search/study/summary.html?id=10562) dataset of 16 genes, from [Broadly Sampled Multigene Analyses Yield a Well-resolved Eukaryotic Tree of Life](https://academic.oup.com/sysbio/article/59/5/518/1645425) and [Estimating the timing of early eukaryotic diversification with multigene molecular clocks](http://www.pnas.org/content/108/33/13624.full)
+* [Philippe 2011](https://media.nature.com/original/nature-assets/nature/journal/v470/n7333/extref/nature09676-s3.txt) dataset of 197 genes, from [Acoelomorph flatworms are deuterostomes related to Xenoturbella](https://www.nature.com/articles/nature09676)
 * [Ryan 2013](https://research.nhgri.nih.gov/manuscripts/Baxevanis/science2013_supplement/) dataset of 406 genes ("EST set"), from [The Genome of the Ctenophore Mnemiopsis leidyi and Its Implications for Cell Type Evolution](http://science.sciencemag.org/content/342/6164/1242592)
 * [Nosenko 2013](https://data.ub.uni-muenchen.de/55/) datasets of 35 genes/9k sites and 87 genes/14k sites from 71 taxa, from [Deep metazoan phylogeny: When different genes tell different stories](http://www.sciencedirect.com/science/article/pii/S1055790313000298)
 * [Cannon 2014](http://datadryad.org/resource/doi:10.5061/dryad.20s7c) datasets of 299 and 185 genes, from [Phylogenomic Resolution of the Hemichordate and Echinoderm Clade](http://www.sciencedirect.com/science/article/pii/S0960982214012925)

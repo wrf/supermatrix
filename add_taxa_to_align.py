@@ -2,18 +2,22 @@
 # add_taxa_to_align.py v1.0 created 2016-12-08
 
 '''
-add_taxa_to_align.py v1.4 2018-01-25
+add_taxa_to_align.py v1.4 2018-03-07
     add new taxa to an existing untrimmed alignment
+    requires Bio Python library
+    get hmmbuild and hmmscan (from hmmer package at http://hmmer.org/)
+
+  IT IS ADVISED TO COLLECT ALL STDERR AS A LOG FILE WITH 2>
 
     to add proteins from species1 and species2 to alignments prot1 and prot2:
 add_taxa_to_align.py -a prot1.aln prot2.aln -t species1.fasta species2.fasta
 
     more generally as:
-add_taxa_to_align.py -a *.aln -t new_transcriptomes/
+add_taxa_to_align.py -a *.aln -t new_transcriptomes/ ...
 
-    requires Bio Python library
+    to use a supermatrix with partitions as the input instead of alignments:
 
-    get hmmbuild and hmmscan (from hmmer package at http://hmmer.org/)
+add_taxa_to_align.py -i partitions.txt -a big_alignment.aln ...
 
     for partitioned alignments, formats include:
   clustal, fasta, nexus, phylip, phylip-relaxed, stockholm
@@ -21,12 +25,18 @@ add_taxa_to_align.py -a *.aln -t new_transcriptomes/
     partition file is comma-delimited text, as single or multiple lines
 1:136,137:301,...
 
+    add taxon names with -T, in the same order as -t
+
+add_taxa_to_align.py -t species1.fasta species2.fasta -T Homo_sapiens Mus_musculus
+
+    specify the new super matrix name with -U
+
+add_taxa_to_align.py -U big_alignment_w_Hs_Mm.aln ...
+
     no e-value threshold is set for hmmsearch, as results are filtered later
     e-value cutoff will be determined automatically (default)
     this can be statically assigned with --ev-threshold,
     though that is not recommended
-
-  IT IS ADVISED TO COLLECT ALL STDERR AS A LOG FILE WITH 2>
 '''
 
 import sys
