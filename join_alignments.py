@@ -2,7 +2,7 @@
 # join_alignments.py v1.0 created 2017-08-15
 
 '''
-join_alignments.py v1.0 2017-11-13
+join_alignments.py v1.0 2018-03-22
 
     specify multiple alignments with -a
     species names are expected to be the same, perhaps separated by an
@@ -11,6 +11,8 @@ join_alignments.py v1.0 2017-11-13
       can be split with -d "@"
 
 join_alignments.py -a hehenberger2017_alignments/* -d "@" -u hehenberger2017_supermatrix.fasta
+
+    joined alignment -u will always be written in fasta format
 
     if rejoining alignments from add_taxa_to_align, after manual editing
     use -A to keep partition order

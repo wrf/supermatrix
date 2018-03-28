@@ -3,23 +3,42 @@ scripts to add new proteins to an existing alignment using hmms, and simple diag
 
 The software here is intended to extend existing supermatrix alignments with new taxa, although a number of general purpose programs are also given here. If something does not work, please email me.
 
+### Jump to: ###
+* [add_taxa_to_align.py](https://github.com/wrf/supermatrix#add_taxa_to_align) main script to add new taxa to an existing alignment
+* [check_supermatrix_alignments.py](https://github.com/wrf/supermatrix#check_supermatrix_alignments) diagnostic for supermatrix occupancy, to be plotted with the Rscript [draw_matrix_occupancy.R](https://github.com/wrf/supermatrix#draw_matrix_occupancy)
+* [a long list of examples](https://github.com/wrf/supermatrix#test-alignments-and-occupancy-matrices) from various published datasets
+
 Please also note that some similar diagnostic/manipulation tools exist in other packages by various people, including [AMAS](https://github.com/marekborowiec/AMAS), [SCaFoS](http://megasun.bch.umontreal.ca/Software/scafos/scafos.html) and [BuddySuite](https://github.com/biologyguy/BuddySuite)
 
 **Note that most Python scripts below require** [BioPython](http://biopython.org/wiki/Download).
 
 ## add_taxa_to_align ##
 Script to add new taxa to an existing protein supermatrix alignment. Proteins from new taxa are untrimmed, though a trimming step may be implemented. Input alignments could be in a number of formats, as a supermatrix with a separate partition file, or individual alignments as separate files.
-* Multiple new taxa can be added with `-t`, as space-separate protein files (could be gene models or translated from transcriptomes). 
-* By default, only the single best hit is taken (changed with `-m`), and is renamed to the corresponding species given in `-T`. 
-* Species names from `-T` and files from `-t` must be in the same order. 
-* Several folders with many intermediate files are generated (`-d`, `-E`, `-I`, and `-S`), in case it is needed to re-examine later.
+
+* Multiple new taxa can be added one of two ways, with `-t`, as space-separate list of protein files (could be gene models or translated from transcriptomes) with `-T` as species names. Fasta files from `-t` and species names from `-T` must be in the same order. Alternatively, a tabular input file may be used (with `-X`) to specify both fasta file and species name for each new species.
+* By default, only the single best hit is taken (changed with `-m`), and is renamed to the corresponding species given in `-T`.
+* Several folders with many intermediate files are generated (`-d`, `-E`, `-I`, and `-S`), in case it is needed to re-examine later. These are automatically named with each run (so they cannot overwrite each other), and probably do not need to be changed.
 * For alignment format (`-f`), most cases *phylip* format is actually *phylip-relaxed*.
-* By default, the e-value cutoff is determined uniquely for each gene based on the lower limit of that hmm against the original gene set. This is to reduce the chance of finding out-paralogs. However, a static e-value cutoff for `hmmsearch` can be given using `--ev-threshold`, though this is not advised. See [below](https://github.com/wrf/supermatrix#determination-of-evalues-for-each-partition) for an explanation.
+* By default, the e-value cutoff is determined uniquely for each gene based on the lower limit of that hmm against the original gene set. This is to reduce the chance of finding out-paralogs. However, a static e-value cutoff for `hmmsearch` can be given using `--ev-threshold`, though this is not advised. See [below for an explanation](https://github.com/wrf/supermatrix#determination-of-evalues-for-each-partition).
 * To generate the new supermatrix with the added taxa, specify the name of the new file with `-U`. A new partition file will be automatically generated if `-U` is specified.
+
+For example, to specify new species with `-t` and `-T`:
 
 `add_taxa_to_align.py -a philippe2009_FullAlignment.phy -i philippe2009_partitions.txt -t ~/genomes/apis_mellifera/amel_OGSv3.2_pep.fa -T Apis_mellifera -f phylip-relaxed -U philippe2009_w_amel.aln`
 
-Requires [BioPython](http://biopython.org/wiki/Download), [hmmsearch and hmmbuild](http://hmmer.org/), and [mafft v7.3.10](http://mafft.cbrc.jp/alignment/software/source.html), though could be modified to use any aligner. Older versions fo mafft are compatible if using the `-r` option  (current script requires an option in v7.3), which skips the mafft alignment-trimming step.
+To instead use a tabular input to specify multiple input files and species, specify the text file with `-X` and **do not use options** `-t` **and** `-T`.
+
+`add_taxa_to_align.py -a philippe2009_FullAlignment.phy -i philippe2009_partitions.txt -X new_taxa.txt -f phylip-relaxed -U philippe2009_w_amel.aln`
+
+The tabular input file is a text file where each line has one fasta file and then the corresponding taxon name, separated by a tab.
+
+```
+~/genomes/apis_mellifera/amel_OGSv3.2_pep.fa	Apis_mellifera
+~/genomes/trichinella_spiralis/t_spiralis.WS248.protein.fa	Trichinella_spiralis
+...
+```
+
+**Requires** [BioPython](http://biopython.org/wiki/Download), [hmmsearch and hmmbuild](http://hmmer.org/), and [mafft v7.3.10](http://mafft.cbrc.jp/alignment/software/source.html), though could be modified to use any aligner. Older versions fo mafft are compatible if using the `-r` option (current script requires an option in v7.3), which skips the mafft alignment-trimming step.
 
 Binaries are assumed to be in the user's PATH. This can be changed with the options `--mafft`, `--hmmbin`, and `--fasttree`. Both `--mafft` and `--fasttree` should point to binaries, but `--hmmbin` points to a folder containing both hmmsearch and hmmbuild.
 
@@ -104,6 +123,8 @@ Some results are summarized below. With the exception of the Borowiec 2015 study
 | Simion 2017     |  97  | 1719  | 65.88 (8.2) |   401632    |      95 (2)    |          28  |   38.07    |
 
 ## test alignments and occupancy matrices ##
+Some alignments can be found in the [alignments folder](https://github.com/wrf/supermatrix/tree/master/alignments), and PDFs of occupancy matrices can be found in the [matrix folder](https://github.com/wrf/supermatrix/tree/master/matrix). Datasets used are:
+
 * [Dunn 2008](https://treebase.org/treebase-web/search/study/summary.html?id=2020) dataset of 65 genes, from [Broad phylogenomic sampling improves resolution of the animal tree of life](https://www.nature.com/articles/nature06614)
 * Philippe et al (2009) dataset of 128 genes and 30k positions, from [Phylogenomics Revives Traditional Views on Deep Animal Relationships](https://www.sciencedirect.com/science/article/pii/S0960982209008057)
 * [Hejnol 2009](https://bitbucket.org/caseywdunn/hejnol_etal_2009) dataset of 1486 genes for 270k positions, from [Assessing the root of bilaterian animals with scalable phylogenomic methods](http://rspb.royalsocietypublishing.org/content/276/1677/4261)
@@ -116,6 +137,7 @@ Some results are summarized below. With the exception of the Borowiec 2015 study
 * [Cannon 2014](http://datadryad.org/resource/doi:10.5061/dryad.20s7c) datasets of 299 and 185 genes, from [Phylogenomic Resolution of the Hemichordate and Echinoderm Clade](http://www.sciencedirect.com/science/article/pii/S0960982214012925)
 * [Misof 2014](http://datadryad.org/resource/doi:10.5061/dryad.3c0f1) dataset of 1478 genes for 584k sites, from [Phylogenomics resolves the timing and pattern of insect evolution](http://science.sciencemag.org/content/346/6210/763)
 * [Weigert 2014](https://datadryad.org/resource/doi:10.5061/dryad.g2qp5) dataset of 421 genes for 104k sites, from [Illuminating the base of the annelid tree using transcriptomics](https://academic.oup.com/mbe/article/31/6/1391/1009370)
+* [Dos Reis 2015](https://figshare.com/articles/Uncertainty_in_the_timing_of_origin_of_animals_and_the_limits_of_precision_in_molecular_timescales/1525089) of 203 genes, mostly taken from the Philippe 2009 set, from [Uncertainty in the Timing of Origin of Animals and the Limits of Precision in Molecular Timescales](https://www.sciencedirect.com/science/article/pii/S096098221501177X)
 * [Whelan 2015](https://figshare.com/articles/Error_signal_and_the_placement_of_Ctenophora_sister_to_all_other_animals/1334306) Dataset-10 (for Fig 3), of 210 genes and 59k sites, from [Error, signal, and the placement of Ctenophora sister to all other animals](http://www.pnas.org/content/112/18/5773.full)
 * [Zapata 2015](https://bitbucket.org/caseywdunn/cnidaria2014) dataset of 1262 genes for 365k positions, from [Phylogenomic Analyses Support Traditional Relationships within Cnidaria](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0139068)
 * [Borowiec 2015](http://datadryad.org/resource/doi:10.5061/dryad.k6tq2) dataset of 1080 genes for 384k positions from 36 taxa with genomes, from [Extracting phylogenetic signal and accounting for bias in whole-genome data sets supports the Ctenophora as sister to remaining Metazoa](https://bmcgenomics.biomedcentral.com/articles/10.1186/s12864-015-2146-4)

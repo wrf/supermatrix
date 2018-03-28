@@ -2,7 +2,7 @@
 # add_taxa_to_align.py v1.0 created 2016-12-08
 
 '''
-add_taxa_to_align.py v1.4 2018-03-07
+add_taxa_to_align.py v1.5 2018-03-28
     add new taxa to an existing untrimmed alignment
     requires Bio Python library
     get hmmbuild and hmmscan (from hmmer package at http://hmmer.org/)
@@ -11,12 +11,17 @@ add_taxa_to_align.py v1.4 2018-03-07
 
     to add proteins from species1 and species2 to alignments prot1 and prot2:
 add_taxa_to_align.py -a prot1.aln prot2.aln -t species1.fasta species2.fasta
-
     more generally as:
 add_taxa_to_align.py -a *.aln -t new_transcriptomes/ ...
 
-    to use a supermatrix with partitions as the input instead of alignments:
+    for very long lists of new taxa, instead use -X (--tabular-taxa)
+    where options of fasta files (-t) and taxon names (-T) are both omitted
+    and instead the information is put into a tab-separated file, as:
+species1.fasta    Homo_sapiens
+species2.fasta    Mus_musculus
+    comment lines within the file are allowed with #
 
+    to use a supermatrix with partitions as the input instead of alignments:
 add_taxa_to_align.py -i partitions.txt -a big_alignment.aln ...
 
     for partitioned alignments, formats include:
@@ -26,11 +31,9 @@ add_taxa_to_align.py -i partitions.txt -a big_alignment.aln ...
 1:136,137:301,...
 
     add taxon names with -T, in the same order as -t
-
 add_taxa_to_align.py -t species1.fasta species2.fasta -T Homo_sapiens Mus_musculus
 
     specify the new super matrix name with -U
-
 add_taxa_to_align.py -U big_alignment_w_Hs_Mm.aln ...
 
     no e-value threshold is set for hmmsearch, as results are filtered later
@@ -62,6 +65,20 @@ def get_partitions(partitionfile, errorlog):
 				partitions.append(alignindex)
 	print >> errorlog, "# read {} partitions from {}".format(len(partitions), partitionfile), time.asctime()
 	return partitions
+
+def tabular_taxa_to_lists(tabulartaxafile):
+	'''read tab-separated file and return two lists, one of fasta files, the other of taxon names'''
+	fastafiles = []
+	taxonnames = []
+	for line in open(tabulartaxafile,'r'):
+		line = line.strip()
+		if line and line[0]!="#": # ignore blank and comment lines
+			lsplits = line.split("\t")
+			if len(lsplits)!=2:
+				sys.exit("ERROR: INCORRECT FORMAT IN LINE:\n{}".format(line))
+			fastafiles.append(os.path.expanduser(lsplits[0]))
+			taxonnames.append(lsplits[1])
+	return fastafiles, taxonnames
 
 def make_alignments(fullalignment, alignformat, partitions, partitiondir, errorlog):
 	'''split large alignment into individual alignments, return the list of files'''
@@ -297,8 +314,8 @@ def collect_sequences(unalignednewtaxa, alignment, hitlistolists, lengthcutoff, 
 def run_mafft(MAFFT, rawseqsfile, errorlog):
 	'''generate multiple sequence alignment from fasta and return MSA filename'''
 	aln_output = "{}.aln".format(os.path.splitext(rawseqsfile)[0] )
-	aligner_args = [MAFFT, "--auto", "--quiet", rawseqsfile]
-	print >> errorlog, "#TIME {}\n{}".format(time.asctime(), " ".join(aligner_args) )
+	aligner_args = [MAFFT, "--maxiterate", "1000", "--localpair", "--quiet", rawseqsfile]
+	print >> errorlog, "#TIME {}\n{} > {}".format(time.asctime(), " ".join(aligner_args), aln_output )
 	with open(aln_output, 'w') as msa:
 		subprocess.call(aligner_args, stdout=msa)
 	print >> errorlog, "# alignment of {} completed".format(aln_output), time.asctime()
@@ -310,8 +327,9 @@ def run_mafft(MAFFT, rawseqsfile, errorlog):
 def run_mafft_addlong(MAFFT, oldalignment, rawseqsfile, errorlog):
 	'''generate new MSA from fasta and old MSA and return MSA filename'''
 	aln_output = "{}.aln".format(os.path.splitext(rawseqsfile)[0] )
-	aligner_args = [MAFFT, "--quiet", "--keeplength", "--auto", "--addlong", rawseqsfile, oldalignment]
-	print >> errorlog, "#TIME {}\n{}".format(time.asctime(), " ".join(aligner_args) )
+#	aligner_args = [MAFFT, "--quiet", "--keeplength", "--auto", "--addlong", rawseqsfile, oldalignment]
+	aligner_args = [MAFFT, "--maxiterate", "1000", "--localpair", "--quiet", "--addlong", rawseqsfile, oldalignment]
+	print >> errorlog, "#TIME {}\n{} > {}".format(time.asctime(), " ".join(aligner_args), aln_output )
 	with open(aln_output, 'w') as msa:
 		subprocess.call(aligner_args, stdout=msa)
 	print >> errorlog, "# alignment of {} completed".format(aln_output), time.asctime()
@@ -354,6 +372,7 @@ def main(argv, wayout, errorlog):
 	parser.add_argument('-S','--hmm-dir', default="hmm_hits", help="temporary directory for hmm hits [./hmm_hits]")
 	parser.add_argument('-t','--taxa', nargs="*", help="new taxa as fasta files of proteins (such as multiple translated transcriptomes) or directory")
 	parser.add_argument('-T','--taxa-names', nargs="*", help="optional species names for supermatrix (can contain underscores, no spaces)")
+	parser.add_argument('-X','--tabular-taxa', help="optional tab-separated file for fasta files and taxon names (must not use -t or -T)")
 	parser.add_argument('-U','--supermatrix', help="name for optional supermatrix output")
 	parser.add_argument('-v','--verbose', action="store_true", help="verbose output of HMM hit removal")
 	parser.add_argument('--mafft', default="mafft", help="path to mafft binary [default is in PATH]")
@@ -371,13 +390,17 @@ def main(argv, wayout, errorlog):
 	print >> errorlog, "# Script called as:\n{}".format( ' '.join(sys.argv) )
 
 	### PROTEIN FILES FOR NEW TAXA
-	if os.path.isdir(args.taxa[0]):
-		print >> errorlog, "# Finding protein files from directory {}".format(args.taxa[0]), time.asctime()
-		globstring = "{}*".format(args.taxa[0])
-		newtaxafiles = glob(globstring)
-	elif os.path.isfile(args.taxa[0]):
-		newtaxafiles = args.taxa
-	else:
+	if args.taxa is not None:
+		if os.path.isdir(args.taxa[0]):
+			print >> errorlog, "# Finding protein files from directory {}".format(args.taxa[0]), time.asctime()
+			globstring = "{}*".format(args.taxa[0])
+			newtaxafiles = glob(globstring)
+		elif os.path.isfile(args.taxa[0]):
+			newtaxafiles = args.taxa
+	### IN CASE TABULAR TAXA FILE IS USED
+	elif args.tabular_taxa is not None:
+		newtaxafiles, args.taxa_names = tabular_taxa_to_lists(args.tabular_taxa)
+	else: # otherwise no taxa are given
 		raise OSError("ERROR: Unknown new protein files, exiting")
 
 	### CHECK IF ALL FILES EXIST
@@ -388,14 +411,15 @@ def main(argv, wayout, errorlog):
 	if missingfiles: # if any are missing
 			raise OSError("ERROR: Cannot find new protein files:\n{}\nexiting".format("\n".join(missingfiles)))
 
+	### APPLY NAMES OF TAXA
 	if args.taxa_names:
-		if len(args.taxa_names)!=len(args.taxa):
-			for tfile, tname in zip(args.taxa, args.taxa_names):
+		if len(args.taxa_names)!=len(newtaxafiles):
+			for tfile, tname in zip(newtaxafiles, args.taxa_names):
 				print >> errorlog, "{}\t{}".format(tfile, tname)
-			raise ValueError("ERROR: number of taxa names ({}) does not match number of files ({}), exiting".format(len(args.taxa_names),len(args.taxa) ) )
+			raise ValueError("ERROR: number of taxa names ({}) does not match number of files ({}), exiting".format(len(args.taxa_names),len(newtaxafiles) ) )
 		else:
-			print >> errorlog, "# Using {} pairs of files and taxon names".format(len(args.taxa))
-			for tfile, tname in zip(args.taxa, args.taxa_names):
+			print >> errorlog, "# Using {} pairs of files and taxon names".format(len(newtaxafiles))
+			for tfile, tname in zip(newtaxafiles, args.taxa_names):
 				print >> errorlog, "{}\t{}".format(tfile, tname)
 	if len(args.taxa_names) != len(set(args.taxa_names)):
 		raise ValueError("ERROR: duplicate taxa names, check -T, exiting")
