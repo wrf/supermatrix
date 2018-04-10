@@ -2,7 +2,7 @@
 #
 # check_supermatrix_alignments.py created 2017-03-13
 
-'''check_supermatrix_alignments.py v1.2 2018-02-27
+'''check_supermatrix_alignments.py v1.2 2018-04-10
 tool to quickly check for abnormal sequences in fasta alignments
 
 checknogalignments.py -a matrix.phy -p partitions.txt
@@ -88,6 +88,8 @@ def check_alignments(fullalignment, alignformat, partitions, makematrix=False, w
 		gapdict[seqrec.id] = 0
 		if occmatrix is not None:
 			occmatrix.append([seqrec.id]) # initate each species as a new list with ID
+	if partitions is None: # for cases where partitions are not given
+		partitions = [ tuple([1,alignedseqs.get_alignment_length()]) ]
 	for part in partitions:
 		alignpart = alignedseqs[:, part[0]-1:part[1] ] # alignment of each partition only
 		for i,seqrec in enumerate(alignpart):
@@ -133,10 +135,14 @@ def main(argv, wayout):
 	parser.add_argument('--pair-stats', help="pair stats file for gene names, to use alternate matrix header format")
 	args = parser.parse_args(argv)
 
-	partitions = get_partitions(args.partition)
+	if args.partition is None: # turn on percent mode if there is only
+		print >> sys.stderr, "# no partitions given, calculating percent of total dataset"
+		args.percent = True
+		partitions = None
+	else:
+		partitions = get_partitions(args.partition)
 	genenames = parts_to_genes(args.pair_stats) if args.pair_stats else None
 	gapdict, halfgaps, occmatrix = check_alignments(args.alignment, args.format, partitions, args.matrix_out, args.percent)
-	numparts = len(partitions)
 
 	if args.matrix_out and occmatrix:
 		print >> sys.stderr, "# writing matrix to {}".format(args.matrix_out), time.asctime()
@@ -144,6 +150,8 @@ def main(argv, wayout):
 			# generate header line
 			if args.pair_stats:
 				headerline = ["Species"] + ["{}--{}".format(part[0], genenames.get(part,"None")) for part in partitions]
+			elif args.partition is None:
+				headerline = ["Species","PercentOccupancy"]
 			else:
 				headerline = ["Species"] + ["{}-{}".format(*part) for part in partitions]
 			print >> mo, args.matrix_delimiter.join(headerline)
@@ -167,7 +175,7 @@ def main(argv, wayout):
 		if args.header:
 			#                  0           1           2    3     4      5
 			print >> wayout, "Species\tPartitions\tMissing\tM%\tPartial\tP%"
-
+		numparts = len(partitions)
 		for k,v in sorted(gapdict.iteritems(), reverse=True, key=lambda x: x[1]):
 			print >> wayout, "{}\t{}\t{}\t{:.2f}\t{}\t{:.2f}".format(k, numparts, v, v*100.0/numparts, halfgaps[k], halfgaps[k]*100.0/numparts)
 

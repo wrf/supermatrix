@@ -18,6 +18,12 @@ genes = dim(occmatrix)[2]
 sumsbyspecies = rowSums(occmatrix)/genes/100
 meanoccupancy = mean(sumsbyspecies)
 
+if (genes < 2) {
+xaxislabel = paste("Fraction of occupied sites")
+} else {
+xaxislabel = paste("Fraction of occupied partitions ( n =",genes,")")
+}
+
 # #
 # COLOR TAXA BASED ON OCCUPANCY
 # #
@@ -34,7 +40,7 @@ par(mar=c(4.5,15,4,1.2))
 # this should be considered "normal"
 barplot(rev(sumsbyspecies), xlim=c(0,1), horiz=TRUE, axes=FALSE, main=inputfile, names=rev(row.names(occmatrix)), border=NA, col=occupancycolors[round(rev(sumsbyspecies),digits=2)*100], las=1 )
 axis(1, cex.axis=1.4)
-mtext( paste("Fraction of occupied partitions ( n =",genes,")") , 1, line=3, cex=1.3)
+mtext( xaxislabel , 1, line=3, cex=1.3)
 mtext( paste("n taxa =",taxa) , side=3, line=1, at=c(-0.1), cex=1.3 )
 lines(c(meanoccupancy,meanoccupancy),c(1,taxa*1.2), lwd=3, lty=2)
 dev.off()
