@@ -41,10 +41,10 @@ add_taxa_to_align.py -U big_alignment_w_Hs_Mm.aln ...
     this can be statically assigned with --ev-threshold,
     though that is not recommended
 
-    for highly trimmed alignments
-    (meaning each individual gene alignment is many discontinuous pieces)
+  for highly trimmed alignments:
+    meaning each individual gene alignment is many discontinuous pieces
     use the option --fragmented to set an alternate gap penalty for hmmbuild
-    it may also be advisable to relax the --ev-correction to 1e20 or 1e25
+    it may also be advisable to relax the --ev-allowance to 1e20 or 1e25
 '''
 
 import sys
@@ -214,7 +214,7 @@ def make_seq_length_dict(sequencefile):
 	print >> sys.stderr, "# Found {} sequences".format(len(lengthdict)), time.asctime()
 	return lengthdict
 
-def get_evalue_from_hmm(HMMSEARCH, hmmprofile, alignment, threadcount, hmmevaluedir, errorlog, evcorrection, bplcorrection):
+def get_evalue_from_hmm(HMMSEARCH, hmmprofile, alignment, threadcount, hmmevaluedir, errorlog, evallowance, bplallowance):
 	'''get dynamic evalue and bitscore/length cutoff from alignment and hmm'''
 #                                                               --- full sequence ---- --- best 1 domain ---- --- domain number estimation ----
 # 0                  1          2                    3            4        5      6      7        8      9
@@ -255,9 +255,9 @@ def get_evalue_from_hmm(HMMSEARCH, hmmprofile, alignment, threadcount, hmmevalue
 		if maxevalue==0.0: # if all evalues are 0.0, then set to 1e-300
 			maxevalue = 1e-300
 		else:
-			maxevalue = maxevalue * evcorrection # correct by constant margin of error, should be 1e10
+			maxevalue = maxevalue * evallowance # correct by constant margin of error, should be 1e15
 		print >> errorlog, "# calculated e-value for {} as {:.3e}".format(alignment, maxevalue)
-		bplcutoff = min(bitslenlist) - bplcorrection # should be 0.1 by default
+		bplcutoff = min(bitslenlist) - bplallowance # should be 0.1 by default
 		if bplcutoff < 0.9:
 			bplcutoff = 0.9
 			print >> errorlog, "# using minimum bits-per-length cutoff for {} of {:.2f}".format(alignment, bplcutoff), time.asctime()
@@ -365,9 +365,9 @@ def main(argv, wayout, errorlog):
 	parser.add_argument('-a','--alignments', nargs="*", help="alignment files or directory")
 	parser.add_argument('-d','--directory', default="new_taxa", help="directory for new alignments [autonamed]")
 	parser.add_argument('--ev-threshold', help="static E-value cutoff for hmmsearch, otherwise determined automatically")
-	parser.add_argument('--ev-correction', type=float, default=1e15, help="E-value offset for automatic detection [1e15]")
+	parser.add_argument('--ev-allowance', type=float, default=1e15, help="E-value offset for automatic detection [1e15], increase to allow more hits (e.g. 1e20)")
 	parser.add_argument('--bpl-threshold', type=float, default=0.9, help="bits-per-length minimum threshold, otherwise determined automatically")
-	parser.add_argument('--bpl-correction', type=float, default=0.1, help="bits-per-length offset for automatic detection [0.1]")
+	parser.add_argument('--bpl-allowance', type=float, default=0.1, help="bits-per-length offset for automatic detection [0.1], increase to allow more hits (e.g. 0.2)")
 	parser.add_argument('-E','--hmm-evalue-dir', default="hmm_vs_self", help="temporary directory for hmm self-search to dynamically determine E-value [./hmm_vs_self]")
 	parser.add_argument('-f','--format', default="fasta", help="alignment format [fasta]")
 	parser.add_argument('-i','--partition', help="optional partition file for splitting large alignments")
@@ -501,7 +501,7 @@ def main(argv, wayout, errorlog):
 
 	print >> errorlog, "# Building HMM profiles", time.asctime()
 	if args.ev_threshold is None:
-		print >> errorlog, "# Determining evalue for each HMM, using offset of {:.1e}".format(args.ev_correction)
+		print >> errorlog, "# Determining evalue for each HMM, using offset of {:.1e}".format(args.ev_allowance)
 	else:
 		try:
 			args.ev_threshold = float(args.ev_threshold)
@@ -517,7 +517,7 @@ def main(argv, wayout, errorlog):
 		hmmprofilelist.append(hmmprofile)
 		# check if threshold was assigned, otherwise determine for each hmm profile
 		# by running hmmsearch against the original proteins
-		filtered_evalue, filtered_bitlen = [args.ev_threshold, args.bpl_threshold] if args.ev_threshold is not None else get_evalue_from_hmm(HMMSEARCH, hmmprofile, alignment, args.processors, new_self_dir, errorlog, args.ev_correction, args.bpl_correction)
+		filtered_evalue, filtered_bitlen = [args.ev_threshold, args.bpl_threshold] if args.ev_threshold is not None else get_evalue_from_hmm(HMMSEARCH, hmmprofile, alignment, args.processors, new_self_dir, errorlog, args.ev_allowance, args.bpl_allowance)
 		# either use the static values, or the dynamic values determined above
 		evalueforhmmdict[hmmprofile] = filtered_evalue
 		bitlenforhmmdict[hmmprofile] = filtered_bitlen
