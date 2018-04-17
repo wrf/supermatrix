@@ -5,7 +5,7 @@
 args = commandArgs(trailingOnly=TRUE)
 
 inputfile = args[1]
-inputfile = "~/est/supermatrix/v11/v11_linsi_c10trim_const_break_matrix.tab"
+#inputfile = "~/est/supermatrix/v11/v11_linsi_c10trim_const_break_matrix.tab"
 outputfile = gsub("([\\w/]+)\\....","\\1.pdf",inputfile,perl=TRUE)
 
 # read table assuming tab delimited
@@ -24,9 +24,8 @@ m2 = m1[,ncol(m1):1]
 
 #diffmatrix = m2-medmatrix
 
-OCCTHRESBYTAXA = 0.99
+ERRTHRESBYTAXA = 1.0
 BADTHRESBYTAXA = 0.33
-OCCTHRESBYGENE = 0.90
 
 occupancycolors = c("#F6F6F6",colorRampPalette(c("#a9d093","#5e3c99"))(11))
 
@@ -37,13 +36,12 @@ print(paste("# coloring taxa with occupancy <", BADTHRESBYTAXA, sep=" " ))
 badtaxa = which(apply(m2, 2, function (x) sum(x[x == -1])) < -BADTHRESBYTAXA*genes)
 taxacolors[badtaxa] = "#cd13c2"
 print(paste("# coloring taxa with total errors >", genes, sep=" " ))
-errorprone = which(apply(m2, 2, function (x) sum(x[x >= 0])) > genes)
+errorprone = which(apply(m2, 2, function (x) sum(x[x >= 0])) > ERRTHRESBYTAXA*genes)
 taxacolors[errorprone] = "#ea4f12"
 
 # #
 # GENERATE PDF OUTPUT #
 # #
-
 
 pdf(outputfile, width=4+genes%/%18, height=5+taxa%/%10)
 par(mar=c(6,12,4,1))
