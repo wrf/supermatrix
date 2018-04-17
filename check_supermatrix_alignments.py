@@ -2,10 +2,10 @@
 #
 # check_supermatrix_alignments.py created 2017-03-13
 
-'''check_supermatrix_alignments.py v1.2 2018-04-10
+'''check_supermatrix_alignments.py v1.3 2018-04-17
 tool to quickly check for abnormal sequences in fasta alignments
 
-checknogalignments.py -a matrix.phy -p partitions.txt
+check_supermatrix_alignments.py -a matrix.phy -p partitions.txt
 
     for partitioned alignments, formats (-f) include:
   clustal, fasta, nexus, phylip, phylip-relaxed, stockholm
@@ -16,12 +16,19 @@ checknogalignments.py -a matrix.phy -p partitions.txt
 Species  Partitions  Number-missing  Percent-missing  Number-partial  Percent-partial
 
     for optional occupancy matrix file:
-checknogalignments.py -a matrix.phy -p partitions.txt -m occupancy_matrix.tab
+check_supermatrix_alignments.py -a matrix.phy -p partitions.txt -m occupancy_matrix.tab
     where matrix consists of three values for:
     present (2), partial (1), and absent (0)
 
+    percent coverage (instead of binary) can be instead printed with --percent
+
+    to check for long runs of infrequent amino acids (likely from misassembly)
+    add option -b, partitions must be specified with -p
+    this cannot be run with --percent
+check_supermatrix_alignments.py -b -a matrix.aln -p partitions.txt -m break_matrix.tab
+
     matrix order can be changed based on a phylogenetic tree in nexus format
-checknogalignments.py -a matrix.phy -p partitions.txt -m occupancy_matrix.tab -T tree.nex
+check_supermatrix_alignments.py -a matrix.phy -p partitions.txt -m occupancy_matrix.tab -T tree.nex
 
     to optionally include gene names in the matrix, use --pair-stats
     pair stats file is the output of align_pair_stats.py, or any file as:
@@ -100,6 +107,7 @@ def check_alignments(fullalignment, alignformat, partitions, makematrix=False, w
 			if writepercent: # write integer of percent covered by each gene
 				occupancyscore = 100 - 100*gapcount/seqlen
 				gapdict[species] += gapcount
+				halfgapdict[species] += seqlen
 			else: # meaning stick with absent-partial-present scheme
 				occupancyscore = 2 # by default is present, reassign if absent or partial
 				if gapcount == seqlen: # seq is all gaps, so no seq
@@ -120,11 +128,101 @@ def check_alignments(fullalignment, alignformat, partitions, makematrix=False, w
 		print >> sys.stderr, "# Matrix has {} ({:.2f}%) complete and {} ({:.2f}%) partial out of {} total genes".format( totaloccs[2], 100.0*totaloccs[2]/totalspots, totaloccs[1], 100.0*totaloccs[1]/totalspots, totalspots ), time.asctime()
 	return gapdict, halfgapdict, occmatrix
 
+def count_breaks(fullalignment, alignformat, partitions, makematrix=False, BREAKMAX=2):
+	'''read large alignment, return two dicts where key is species and values are number of unbroken sequences and sum of breaks'''
+	species_breaks = defaultdict(int) # total constant breaks by species
+	species_corrects = defaultdict(int) # number of genes with no breaks by species
+	occmatrix = [] if makematrix else None
+
+	if fullalignment.rsplit('.',1)[1]=="gz": # autodetect gzip format
+		opentype = gzip.open
+		print >> sys.stderr, "# reading alignment {} as gzipped".format(fullalignment), time.asctime()
+	else: # otherwise assume normal open
+		opentype = open
+		print >> sys.stderr, "# reading alignment {}".format(fullalignment), time.asctime()
+	alignedseqs = AlignIO.read(opentype(fullalignment), alignformat)
+
+	numtaxa = len(alignedseqs)
+	alignlength = alignedseqs.get_alignment_length()
+	print >> sys.stderr, "# Alignment contains {} taxa for {} sites, including gaps".format( numtaxa, alignlength )
+
+	for seqrec in alignedseqs: # all species must be counted once
+		if occmatrix is not None:
+			occmatrix.append([seqrec.id]) # initate each species as a new list with ID
+
+	for part in partitions:
+		aa_freq_by_site = {} # key is site number, value is Counter
+		const_breaker_thres = {} # key is site number, value is int of number of species / number of AAs
+		most_common_by_site = {} # key is site number, value is most frequent letter
+
+		alignpart = alignedseqs[:, part[0]-1:part[1] ] # alignment of each partition only
+		partlength = alignpart.get_alignment_length()
+		# get base frequency of each site
+		for j in range(partlength):
+			aligncolumn = str(alignpart[:,j])
+			aa_freq = Counter(aligncolumn.replace("X","-").replace("?","-"))
+			aa_freq_by_site[j] = aa_freq
+			num_aas = len(aa_freq)
+			breakmax = numtaxa/num_aas
+			const_breaker_thres[j] = breakmax
+
+			most_common_by_site[j] = aa_freq.most_common(1)[0][0]
+
+		# count number of times each taxa breaks constant site rules
+		for i,seqrec in enumerate(alignpart):
+			longest_break = 0 # float of sum of 1/f for the longest segment of uncommon AAs
+			runningscore = 0
+			total_breaks = 0
+			previous_letter = '-'
+			previous_common = '-'
+
+			species = seqrec.id
+			seqlen = len(seqrec.seq)
+			# if species is all gaps, assign as negative 1, for absent
+			gapcount = str(seqrec.seq).replace("X","-").replace("?","-").count("-")
+			if gapcount==seqlen:
+				occmatrix[i].append("-1")
+				continue
+			# check frequency of each letter, and sum of inverse frequencies of long runs
+			for k,letter in enumerate(str(seqrec.seq)):
+				if letter=="X" or letter=="?":
+					letter = "-"
+				# break at long gaps, either for this species, or if most common part is gap
+				if (letter=="-" and letter==previous_letter) or (most_common_by_site[k]=='-' and previous_common=='-'):
+					if runningscore > longest_break:
+						longest_break = runningscore
+					total_breaks += runningscore
+					runningscore = 0
+				# only keep running total if site is rare
+				# meaning frequency of letter is less than N/n
+				# where N is number of taxa, and n is number of AAs at that site
+				elif aa_freq_by_site[k][letter] < const_breaker_thres[k]:
+					inverse_freq = 1.0 / aa_freq_by_site[k][letter]
+					runningscore += inverse_freq
+				# break at frequent or constant sites
+				elif letter=="P" or letter=="C": # never break at proline and cysteine
+					inverse_freq = 1.0 / aa_freq_by_site[k][letter]
+					runningscore += inverse_freq
+				else:
+					if runningscore > longest_break:
+						longest_break = runningscore
+					total_breaks += runningscore
+					runningscore = 0
+				previous_letter = letter
+				previous_common = most_common_by_site[k]
+			species_breaks[species] += total_breaks
+			occmatrix[i].append("{:.2f}".format(longest_break))
+			if total_breaks <= BREAKMAX:
+				species_corrects[species] += 1
+	return species_corrects, species_breaks, occmatrix
+
 def main(argv, wayout):
 	if not len(argv):
 		argv.append('-h')
 	parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description=__doc__)
 	parser.add_argument('-a','--alignment', help="supermatrix alignment")
+	parser.add_argument('-b','--breaks', action="store_true", help="score consecutive breaks instead of counting coverage")
+	parser.add_argument('-B','--break-limit', type=int, default=2, help="max consecutive score to count gene as unbroken")
 	parser.add_argument('-f','--format', default="fasta", help="alignment format [fasta]")
 	parser.add_argument('-H','--header', action="store_true", help="include header line")
 	parser.add_argument('-m','--matrix-out', help="name for optional matrix-occupancy output file")
@@ -142,7 +240,15 @@ def main(argv, wayout):
 	else:
 		partitions = get_partitions(args.partition)
 	genenames = parts_to_genes(args.pair_stats) if args.pair_stats else None
-	gapdict, halfgaps, occmatrix = check_alignments(args.alignment, args.format, partitions, args.matrix_out, args.percent)
+
+	# check for breaks
+	if args.breaks:
+		if args.percent:
+			sys.exit("WARNING: PERCENT MODE --percent CANNOT BE USED WITH BREAKS -b")
+		maindict, secondarydict, occmatrix = count_breaks(args.alignment, args.format, partitions, args.matrix_out, args.break_limit)
+	# otherwise check for coverage
+	else:
+		maindict, secondarydict, occmatrix = check_alignments(args.alignment, args.format, partitions, args.matrix_out, args.percent)
 
 	if args.matrix_out and occmatrix:
 		print >> sys.stderr, "# writing matrix to {}".format(args.matrix_out), time.asctime()
@@ -171,13 +277,25 @@ def main(argv, wayout):
 				for occbysplist in occmatrix:
 					print >> mo, args.matrix_delimiter.join(occbysplist)
 
-	if not args.percent: # only print output if not in percent mode
+	if args.percent: # just print total percentage of sites
+		if args.header:
+			#                  0           1           2    3
+			print >> wayout, "Species\tSites\tGaps\tG%"
+		for k,v in sorted(maindict.iteritems(), reverse=True, key=lambda x: x[1]):
+			print >> wayout, "{}\t{}\t{}\t{:.2f}".format(k, secondarydict[k], v, v*100.0/secondarydict[k])
+	elif args.breaks:
+		if args.header:
+			#                  0           1           2    3     4
+			print >> wayout, "Species\tPartitions\tComplete\tM%\tBreaksum"
+		numparts = len(partitions)
+		for k,v in sorted(maindict.iteritems(), reverse=True, key=lambda x: x[1]):
+			print >> wayout, "{}\t{}\t{}\t{:.2f}\t{}".format(k, numparts, v, v*100.0/numparts, secondarydict[k])
+	else: # only print normal output if not in percent mode
 		if args.header:
 			#                  0           1           2    3     4      5
 			print >> wayout, "Species\tPartitions\tMissing\tM%\tPartial\tP%"
 		numparts = len(partitions)
-		for k,v in sorted(gapdict.iteritems(), reverse=True, key=lambda x: x[1]):
-			print >> wayout, "{}\t{}\t{}\t{:.2f}\t{}\t{:.2f}".format(k, numparts, v, v*100.0/numparts, halfgaps[k], halfgaps[k]*100.0/numparts)
-
+		for k,v in sorted(maindict.iteritems(), reverse=True, key=lambda x: x[1]):
+			print >> wayout, "{}\t{}\t{}\t{:.2f}\t{}\t{:.2f}".format(k, numparts, v, v*100.0/numparts, secondarydict[k], secondarydict[k]*100.0/numparts)
 if __name__ == "__main__":
 	main(sys.argv[1:], sys.stdout)
