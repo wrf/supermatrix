@@ -2,7 +2,7 @@
 #
 # split_supermatrix_to_genes.py created 2018-02-12
 
-'''split_supermatrix_to_genes.py v1.0 2018-02-14
+'''split_supermatrix_to_genes.py v1.0 2018-03-22
 tool to re-partition supermatrices into fasta files for each gene
 
 split_supermatrix_to_genes.py -a matrix.phy -p partitions.txt -d aln_dir -f phylip-relaxed
@@ -49,7 +49,7 @@ def split_genes(fullalignment, alignformat, alndir, partitions, fileprefix):
 	for part in partitions:
 		alignpart = alignedseqs[:, part[0]-1:part[1] ] # alignment of each partition only
 		maxdigits = str(len(str(al_length)))
-		bufferedpartstring = fileprefix + "_{:0"+maxdigits+"}_{:0"+maxdigits+"}.aln"
+		bufferedpartstring = fileprefix + "_{:0"+maxdigits+"}_{:0"+maxdigits+"}_part.aln"
 		genefilename = "{}".format( os.path.join(alndir, bufferedpartstring.format(*part)) )
 		AlignIO.write(alignpart, genefilename, "fasta")
 		filecounter += 1
