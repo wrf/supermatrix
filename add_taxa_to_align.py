@@ -2,7 +2,7 @@
 # add_taxa_to_align.py v1.0 created 2016-12-08
 
 '''
-add_taxa_to_align.py v1.5 2018-03-28
+add_taxa_to_align.py v1.5 2018-04-17
     add new taxa to an existing untrimmed alignment
     requires Bio Python library
     get hmmbuild and hmmscan (from hmmer package at http://hmmer.org/)
@@ -40,6 +40,11 @@ add_taxa_to_align.py -U big_alignment_w_Hs_Mm.aln ...
     e-value cutoff will be determined automatically (default)
     this can be statically assigned with --ev-threshold,
     though that is not recommended
+
+    for highly trimmed alignments
+    (meaning each individual gene alignment is many discontinuous pieces)
+    use the option --fragmented to set an alternate gap penalty for hmmbuild
+    it may also be advisable to relax the --ev-correction to 1e20 or 1e25
 '''
 
 import sys
@@ -93,11 +98,14 @@ def make_alignments(fullalignment, alignformat, partitions, partitiondir, errorl
 	print >> errorlog, "# split alignment by partitions", time.asctime()
 	return splitalignments
 
-def run_hmmbuild(HMMBUILD, alignmentfile, errorlog):
+def run_hmmbuild(HMMBUILD, alignmentfile, errorlog, fragmented=False):
 	'''generate HMM profile from multiple sequence alignment and return HMM filename'''
 	# filename contains relative path, so should include partitions folder
 	hmm_output = "{}.hmm".format(os.path.splitext(alignmentfile)[0] )
-	hmmbuild_args = [HMMBUILD, hmm_output, alignmentfile]
+	if fragmented:
+		hmmbuild_args = [HMMBUILD, "--pextend", "0.8", hmm_output, alignmentfile]
+	else:
+		hmmbuild_args = [HMMBUILD, hmm_output, alignmentfile]
 	print >> errorlog, "#TIME {}\n{}".format(time.asctime(), " ".join(hmmbuild_args) )
 	subprocess.call(hmmbuild_args, stdout=errorlog)
 	print >> errorlog, "# hmmbuild completed", time.asctime()
@@ -378,6 +386,7 @@ def main(argv, wayout, errorlog):
 	parser.add_argument('--mafft', default="mafft", help="path to mafft binary [default is in PATH]")
 	parser.add_argument('--hmmbin', default="", help="path to hmm binaries, should be a directory containing hmmbuild and hmmsearch [default is ./]")
 	parser.add_argument('--fasttree', default="FastTreeMP", help="path to fasttree binary [default is in PATH]")
+	parser.add_argument('--fragmented', action="store_true", help="alignments are highly-trimmed fragments, use relaxed gap properties")
 	parser.add_argument('--no-gene-trees', action="store_true", help="skip the FastTree step")
 	args = parser.parse_args(argv)
 
@@ -503,7 +512,7 @@ def main(argv, wayout, errorlog):
 	# GET EVALUE AND BPL FOR EACH ALIGNMENT
 	for alignment in alignfiles:
 		# make hmm profile from alignment, test against original set to determine evalue cutoff for new seqs
-		hmmprofile = run_hmmbuild(HMMBUILD, alignment, errorlog)
+		hmmprofile = run_hmmbuild(HMMBUILD, alignment, errorlog, args.fragmented)
 		aligntohmm[alignment] = hmmprofile
 		hmmprofilelist.append(hmmprofile)
 		# check if threshold was assigned, otherwise determine for each hmm profile
