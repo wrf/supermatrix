@@ -2,7 +2,7 @@
 # add_taxa_to_align.py v1.0 created 2016-12-08
 
 '''
-add_taxa_to_align.py v1.5 2018-04-17
+add_taxa_to_align.py v1.5 2018-04-19
     add new taxa to an existing untrimmed alignment
     requires Bio Python library
     get hmmbuild and hmmscan (from hmmer package at http://hmmer.org/)
@@ -288,7 +288,7 @@ def unalign_sequences(unalignedtaxa, alignment, notrim, calculatemedian, removee
 	else: # essentially void, just generates unaligned fasta file
 		return None
 
-def collect_sequences(unalignednewtaxa, alignment, hitlistolists, lengthcutoff, speciesnames, maxhits, dosupermatrix, notrim ):
+def collect_sequences(unalignednewtaxa, alignment, hitlistolists, lengthcutoff, speciesnames, maxhits, keep_old_ids, notrim ):
 	'''write sequences from old alignment and new hits to file'''
 	speciescounts = defaultdict(int) # key is species, value is number of written seqs per species
 	median = unalign_sequences(unalignednewtaxa, alignment, notrim, calculatemedian=True, removeempty=False)
@@ -304,12 +304,12 @@ def collect_sequences(unalignednewtaxa, alignment, hitlistolists, lengthcutoff, 
 				if writeout==maxhits: # if already have enough candidates
 					break
 				if len(seqrec.seq) >= median*lengthcutoff: # remove short sequences
-					if dosupermatrix:
+					if keep_old_ids is False: # should be False by default
 						if seqrec.id==speciesnames[i]: # check if seq was already used, so dict entry was renamed
 							print >> sys.stderr, "WARNING: REDUNDANT SEQ {} FOR {}".format(seqrec.name, os.path.basename(alignment) )
-						print >> sys.stderr, "# using seq {} for {}".format( seqrec.id, speciesnames[i] )
 						seqrec.id = str(speciesnames[i])
 						seqrec.description = ""
+					print >> sys.stderr, "# using seq {} for {}".format( seqrec.id, speciesnames[i] )
 					notaln.write( seqrec.format("fasta") )
 					writeout += 1
 				else: # meaning too short
@@ -388,6 +388,7 @@ def main(argv, wayout, errorlog):
 	parser.add_argument('--fasttree', default="FastTreeMP", help="path to fasttree binary [default is in PATH]")
 	parser.add_argument('--fragmented', action="store_true", help="alignments are highly-trimmed fragments, use relaxed gap properties")
 	parser.add_argument('--no-gene-trees', action="store_true", help="skip the FastTree step")
+	parser.add_argument('--preserve-names', action="store_true", help="keep the fasta headers for each hit, instead of renaming by taxa (only use if not making a supermatrix)")
 	args = parser.parse_args(argv)
 
 	ALIGNER = os.path.expanduser(args.mafft)
@@ -543,7 +544,7 @@ def main(argv, wayout, errorlog):
 	# then reiterate over each alignment, make the new fasta file, alignment, tree, and add to supermatrix
 	for alignment in alignfiles:
 		nt_unaligned = os.path.join(new_aln_dir, "{}.fasta".format(os.path.splitext(os.path.basename(alignment))[0] ) )
-		collect_sequences(nt_unaligned, alignment, seqrecs_to_add[aligntohmm[alignment]], args.length, speciesnames, args.max_hits, args.supermatrix, args.no_trim)
+		collect_sequences(nt_unaligned, alignment, seqrecs_to_add[aligntohmm[alignment]], args.length, speciesnames, args.max_hits, args.preserve_names, args.no_trim)
 		if args.no_trim: # use original method, which allows gaps from new sequences
 			nt_aligned = run_mafft(ALIGNER, nt_unaligned, errorlog)
 		else: # use --keeplength in mafft
