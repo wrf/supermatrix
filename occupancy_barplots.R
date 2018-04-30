@@ -38,7 +38,7 @@ pdf(outputfile, width=10, height=5+taxa%/%10)
 par(mar=c(4.5,15,4,1.2))
 # inverted order, to resemble viewing the table directly
 # this should be considered "normal"
-barplot(rev(sumsbyspecies), xlim=c(0,1), horiz=TRUE, axes=FALSE, main=inputfile, names=rev(row.names(occmatrix)), border=NA, col=occupancycolors[round(rev(sumsbyspecies),digits=2)*100], las=1 )
+barplot(rev(sumsbyspecies), xlim=c(0,1), horiz=TRUE, axes=FALSE, main=inputfile, names=rev(row.names(occmatrix)), border=NA, col=occupancycolors[round(rev(sumsbyspecies),digits=2)*100+1], las=1 )
 axis(1, cex.axis=1.4)
 mtext( xaxislabel , 1, line=3, cex=1.3)
 mtext( paste("n taxa =",taxa) , side=3, line=1, at=c(-0.1), cex=1.3 )
