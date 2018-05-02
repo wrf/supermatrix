@@ -2,7 +2,7 @@
 #
 # reorder_matrix_by_cov.py created 2017-10-24
 
-'''reorder_matrix_by_cov.py  last modified 2018-02-27
+'''reorder_matrix_by_cov.py  last modified 2018-05-01
 
 reorder_matrix_by_cov.py -a matrix.phy -p partitions.txt -o reordered_matrix.phy
 
@@ -56,7 +56,7 @@ def parts_to_genes(pairstatsfile):
 	print >> sys.stderr, "# found {} gene names".format(len(part_to_gene)), time.asctime()
 	return part_to_gene
 
-def reorder_alignments(fullalignment, alignformat, partitions, maxsites, genenamedict):
+def reorder_alignments(fullalignment, alignformat, partitions, maxsites, genenamedict, reverse_sort):
 	'''read alignment, and return a new alignment where partitions are reordered from highest coverage to lowest'''
 	if fullalignment.rsplit('.',1)[1]=="gz": # autodetect gzip format
 		opentype = gzip.open
@@ -98,8 +98,11 @@ def reorder_alignments(fullalignment, alignformat, partitions, maxsites, genenam
 		aligncompleteness[part] = covscore
 		alignparts[part] = alignpart
 
-	print >> sys.stderr, "# sorting partitions", time.asctime()
-	for part, score in sorted(aligncompleteness.items(), key=lambda x: x[1], reverse=True):
+	if reverse_sort:
+		print >> sys.stderr, "# sorting partitions, by highest coverage", time.asctime()
+	else:
+		print >> sys.stderr, "# sorting partitions, taking lowest coverage", time.asctime()
+	for part, score in sorted(aligncompleteness.items(), key=lambda x: x[1], reverse=reverse_sort):
 		#print >> sys.stderr, part, score
 		newindices = "{}:{}".format( newalign.get_alignment_length()+1, newalign.get_alignment_length()+part[1]-part[0]+1 )
 		newpartitions.append( newindices )
@@ -120,12 +123,13 @@ def main(argv, wayout):
 	parser.add_argument('-m','--max-sites', type=int, help="optional limit to stop after N sites")
 	parser.add_argument('-o','--output', help="output name for new alignment", required=True)
 	parser.add_argument('-p','--partition', help="partition file for splitting large alignments")
+	parser.add_argument('--invert', action="store_false", help="instead sort by lowest coverage first")
 	parser.add_argument('--pair-stats', help="pair stats file for gene names, to use with RAxML style partition format")
 	args = parser.parse_args(argv)
 
 	partitions = get_partitions(args.partition)
 	genenames = parts_to_genes(args.pair_stats) if args.pair_stats else None
-	sortedalignment, partitionlist, genenames = reorder_alignments(args.alignment, args.format, partitions, args.max_sites, genenames)
+	sortedalignment, partitionlist, genenames = reorder_alignments(args.alignment, args.format, partitions, args.max_sites, genenames, args.invert)
 	AlignIO.write(sortedalignment, args.output, args.format)
 	print >> sys.stderr, "# Supermatrix written to {}".format(args.output), time.asctime()
 	with open("{}.partition.txt".format(args.output),'w') as pf:
