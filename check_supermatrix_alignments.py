@@ -128,7 +128,7 @@ def check_alignments(fullalignment, alignformat, partitions, makematrix=False, w
 		print >> sys.stderr, "# Matrix has {} ({:.2f}%) complete and {} ({:.2f}%) partial out of {} total genes".format( totaloccs[2], 100.0*totaloccs[2]/totalspots, totaloccs[1], 100.0*totaloccs[1]/totalspots, totalspots ), time.asctime()
 	return gapdict, halfgapdict, occmatrix
 
-def count_breaks(fullalignment, alignformat, partitions, makematrix=False, BREAKMAX=2):
+def count_breaks(fullalignment, alignformat, partitions, makematrix=False, MAXBREAKTHRES=2):
 	'''read large alignment, return two dicts where key is species and values are number of unbroken sequences and sum of breaks'''
 	species_breaks = defaultdict(int) # total constant breaks by species
 	species_corrects = defaultdict(int) # number of genes with no breaks by species
@@ -212,7 +212,7 @@ def count_breaks(fullalignment, alignformat, partitions, makematrix=False, BREAK
 				previous_common = most_common_by_site[k]
 			species_breaks[species] += total_breaks
 			occmatrix[i].append("{:.2f}".format(longest_break))
-			if total_breaks <= BREAKMAX:
+			if total_breaks <= MAXBREAKTHRES:
 				species_corrects[species] += 1
 	return species_corrects, species_breaks, occmatrix
 
