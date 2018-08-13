@@ -6,7 +6,7 @@ args = commandArgs(trailingOnly=TRUE)
 
 inputfile = args[1]
 #inputfile = "~/git/supermatrix/matrix/philippe2009_occupancy_matrix.tab"
-outputfile = gsub("([\\w/]+)\\....","\\1.pdf",inputfile,perl=TRUE)
+outputfile = gsub("([\\w/]+)\\....$","\\1.pdf",inputfile,perl=TRUE)
 
 # read table assuming tab delimited
 occmatrix = read.table(inputfile,header=TRUE, sep="\t",row.names=1)
