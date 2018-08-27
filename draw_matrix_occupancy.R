@@ -90,9 +90,9 @@ par(xpd=TRUE)
 if (min(m2)<0) {
 legend(-35,-1, legend=c("In m2", "In m1", "Absent","Mismatch","Same"), pch=22, pt.bg=occupancycolors, cex=1.1, ncol=2)
 } else if (max(m2)>2) {
-legend(-32,-1, legend=c( paste("Absent (",round(occhist$counts[3]/gsum*100),"%)", sep=""), paste("Partial (",round(sum(occhist$counts[4:102])/gsum*100),"%)", sep="") , paste("Complete (",round(occhist$counts[103]/gsum*100),"%)", sep="") ), pch=22, pt.bg=occupancycolors[c(3,4,103)], cex=1.1)
+legend(-3,-1, legend=c( paste("Absent (",round(occhist$counts[3]/gsum*100),"%)", sep=""), paste("Partial (",round(sum(occhist$counts[4:102])/gsum*100),"%)", sep="") , paste("Complete (",round(occhist$counts[103]/gsum*100),"%)", sep="") ), pch=22, pt.bg=occupancycolors[c(3,4,103)], cex=1.1, xjust=1)
 } else {
-legend(-32,-1, legend=c( paste("Absent (",round(occhist$counts[3]/gsum*100),"%)", sep=""), paste("Incomplete (",round(occhist$counts[4]/gsum*100),"%)", sep="") , paste("Present (",round(occhist$counts[5]/gsum*100),"%)", sep="") ), pch=22, pt.bg=occupancycolors[3:5], cex=1.1)
+legend(-3,-1, legend=c( paste("Absent (",round(occhist$counts[3]/gsum*100),"%)", sep=""), paste("Incomplete (",round(occhist$counts[4]/gsum*100),"%)", sep="") , paste("Present (",round(occhist$counts[5]/gsum*100),"%)", sep="") ), pch=22, pt.bg=occupancycolors[3:5], cex=1.1, xjust=1)
 }
 
 dev.off()
