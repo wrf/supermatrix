@@ -2,7 +2,7 @@
 # add_taxa_to_align.py v1.0 created 2016-12-08
 
 '''
-add_taxa_to_align.py v1.5 2018-04-19
+add_taxa_to_align.py v1.5 2018-08-27
     add new taxa to an existing untrimmed alignment
     requires Bio Python library
     get hmmbuild and hmmscan (from hmmer package at http://hmmer.org/)
@@ -84,6 +84,20 @@ def tabular_taxa_to_lists(tabulartaxafile):
 			fastafiles.append(os.path.expanduser(lsplits[0]))
 			taxonnames.append(lsplits[1])
 	return fastafiles, taxonnames
+
+def check_redundant_names(fullalignment, alignformat, new_taxa):
+	'''read new taxa names and alignment, return a list of redundant names'''
+	taxa_counts = defaultdict(int)
+	for taxon in new_taxa:
+		taxa_counts[taxon] += 1
+	alignedseqs = AlignIO.read(fullalignment, alignformat)
+	for seqrec in alignedseqs:
+		taxa_counts[seqrec.id] += 1
+	doublecounts = []
+	for taxon, counts in taxa_counts.iteritems():
+		if counts > 1:
+			doublecounts.append(taxon)
+	return doublecounts
 
 def make_alignments(fullalignment, alignformat, partitions, partitiondir, errorlog):
 	'''split large alignment into individual alignments, return the list of files'''
@@ -301,6 +315,7 @@ def collect_sequences(unalignednewtaxa, alignment, hitlistolists, lengthcutoff, 
 				print >> notaln, ">{}".format(speciesnames[i])
 				continue
 			for seqrec in hitlist: # sublist, each item is a SeqRecord object
+				old_id = str(seqrec.id)
 				if writeout==maxhits: # if already have enough candidates
 					break
 				if len(seqrec.seq) >= median*lengthcutoff: # remove short sequences
@@ -309,7 +324,7 @@ def collect_sequences(unalignednewtaxa, alignment, hitlistolists, lengthcutoff, 
 							print >> sys.stderr, "WARNING: REDUNDANT SEQ {} FOR {}".format(seqrec.name, os.path.basename(alignment) )
 						seqrec.id = str(speciesnames[i])
 						seqrec.description = ""
-					print >> sys.stderr, "# using seq {} for {}".format( seqrec.id, speciesnames[i] )
+					print >> sys.stderr, "# using seq {} for {}".format( old_id, speciesnames[i] )
 					notaln.write( seqrec.format("fasta") )
 					writeout += 1
 				else: # meaning too short
@@ -444,6 +459,11 @@ def main(argv, wayout, errorlog):
 		elif not os.path.isfile(args.alignments[0]):
 			raise OSError("ERROR: Cannot find {} alignment for partitions, exiting".format(args.alignments[0]) )
 		else:
+			# check if any names are redundant between old and new sets
+			redundant_taxa = check_redundant_names(args.alignments[0], args.format, args.taxa_names)
+			if redundant_taxa:
+				raise ValueError("ERROR: duplicate taxa names:\n{}".format( "\n".join(redundant_taxa) ) )
+			# get partitions from the file
 			partitions = get_partitions(args.partition, errorlog)
 			part_dir = os.path.abspath( "{}_{}".format( timestring, args.partition_dir ) )
 			if not os.path.isdir(part_dir):
@@ -452,6 +472,7 @@ def main(argv, wayout, errorlog):
 				else:
 					os.mkdir(part_dir)
 					print >> errorlog, "# Creating directory {}".format(part_dir), time.asctime()
+			# if all names are unique, then continue to split the supermatrix
 			alignfiles = make_alignments(args.alignments[0], args.format, partitions, part_dir, errorlog)
 	### ALIGNMENTS TO BE EXTENDED AS MULTIPLE FILES
 	else: # otherwise treat alignments as normal, either directory or single file
