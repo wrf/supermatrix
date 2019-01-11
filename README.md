@@ -12,7 +12,7 @@ Please also note that some similar diagnostic/manipulation tools exist in other 
 
 **Note that most Python scripts below require** [BioPython](http://biopython.org/wiki/Download).
 
-## add_taxa_to_align ##
+## [add_taxa_to_align](https://github.com/wrf/supermatrix/blob/master/add_taxa_to_align.py) ##
 Script to add new taxa to an existing protein supermatrix alignment. Proteins from new taxa are untrimmed, though a trimming step may be implemented. Input alignments could be in a number of formats, as a supermatrix with a separate partition file, or individual alignments as separate files.
 
 * Multiple new taxa can be added one of two ways, with `-t`, as space-separate list of protein files (could be gene models or translated from transcriptomes) with `-T` as species names. Fasta files from `-t` and species names from `-T` must be in the same order. Alternatively, a tabular input file may be used (with `-X`) to specify both fasta file and species name for each new species.
@@ -46,7 +46,7 @@ Binaries are assumed to be in the user's PATH. This can be changed with the opti
 
 All messages and reports can be captured as standard error (using `2>`), such as `2> philippe2009_w_new_taxa.log`. It is recommended to do this (possibly in verbose mode `-v`) as the log contains information as to why every hmmsearch hit was selected or rejected, and it may be necessary to manually correct some sequences.
 
-## join_alignments ##
+## [join_alignments](https://github.com/wrf/supermatrix/blob/master/join_alignments.py) ##
 Join multiple individual alignment files into a supermatrix, allowing for only one occurence of any taxa in each alignment. Names must be the same, though can have unique identifiers (like gene names or numbers) as long as they can be systematically split from the taxon names (using `-d`).
 
 `join_alignments.py -a hehenberger2017_alignments/* -d "@" -u hehenberger2017_supermatrix.fasta`
@@ -55,22 +55,22 @@ This can also be used to rejoin alignments produced by `add_taxa_to_align.py` th
 
 This will automatically generate a partition file for the supermatrix, adding `.partition.txt` to the name from `-u`.
 
-## split_supermatrix_to_genes ##
+## [split_supermatrix_to_genes](https://github.com/wrf/supermatrix/blob/master/split_supermatrix_to_genes.py) ##
 Split a supermatrix back into individual alignment files in fasta format, one for gene defined by the partition file. An optional output directory can be given with `-d`, otherwise files are placed in the present working directory. This is the reverse operation of `join_alignments.py`.
 
 `./split_supermatrix_to_genes.py -a simion2017_97sp_401632pos_1719genes.fasta.gz -d simion_genes -p simion2017_partitions.txt`
 
-## split_supermatrix_to_taxa ##
+## [split_supermatrix_to_taxa](https://github.com/wrf/supermatrix/blob/master/split_supermatrix_to_taxa.py) ##
 Split a supermatrix into fasta files, one for each taxa where individual proteins are defined by the partition file. Empty proteins are ignored, but gaps are retained, meaning gaps may need to be removed later depending on the next step. This **is NOT** the reverse operation of `join_alignments.py`, which joins multiple alignment files into a supermatrix.
 
 `./split_supermatrix_to_taxa.py -a simion2017_97sp_401632pos_1719genes.fasta.gz -d simion_taxa -p simion2017_partitions.txt`
 
-## check_supermatrix_alignments ##
+## [check_supermatrix_alignments](https://github.com/wrf/supermatrix/blob/master/check_supermatrix_alignments.py) ##
 Quick diagnostic script to check matrix occupancy. Adjust format accordingly based on the alignment using the `-f` option. As above, in most cases *phylip* format is probably *phylip-relaxed*.
 
 `check_supermatrix_alignments.py -a philippe2009_FullAlignment.phy -p philippe2009_partitions.txt -f phylip-relaxed`
 
-To generate a chart of matrix occupancy, add the `-m` option with the name of the new output file. This matrix can be visualized using the R script `draw_matrix_occupancy.R`.
+To generate a chart of matrix occupancy, add the `-m` option with the name of the new output file. This matrix can be visualized using the R script [draw_matrix_occupancy.R](https://github.com/wrf/supermatrix/blob/master/draw_matrix_occupancy.R).
 
 `check_supermatrix_alignments.py -a philippe2009_FullAlignment.phy -p philippe2009_partitions.txt -f phylip-relaxed -m philippe2009_occupancy_matrix.tab`
 
@@ -82,17 +82,17 @@ Because `Present` is coded as 50-100% of the full length, this may hide taxa tha
 
 `check_supermatrix_alignments.py -p Metazoa_full_Models_short.txt -a Metazoa_full-fix.phy -f phylip-relaxed --percent -m Metazoa_full_percent_matrix.tab -T Metazoa_full.nex`
 
-## compare_supermatrix_alignments ##
+## [compare_supermatrix_alignments](https://github.com/wrf/supermatrix/blob/master/compare_supermatrix_alignments.py) ##
 Directly compare two output supermatrices, say from two different runs of `add_taxa_to_align.py` using slightly different parameters. This will show genes that missing in one or the other, or are different between the two, perhaps due to finding incorrect genes or different splice variants.
 
 Note that partitions must be the same, meaning only vary by presence or absence.
 
-## filter_supermatrix ##
+## [filter_supermatrix](https://github.com/wrf/supermatrix/blob/master/filter_supermatrix.py) ##
 Filter supermatrices based on coverage for each gene (not removing individual sites). Minimum coverage is given by `-c` for values between 0 and 1. A new partition file is automatically generated based on the output name `-o`. 
 
 `filter_supermatrix.py -a simion2017_97sp_401632pos_1719genes.fasta -c 0.75 -p simion2017_partitions.txt -o simion2017_97sp_75cov.fasta`
 
-## draw_matrix_occupancy ##
+## [draw_matrix_occupancy](https://github.com/wrf/supermatrix/blob/master/draw_matrix_occupancy.R) ##
 A graph of matrix occupancy can be generated with the accompanied R script. Genes that are present are colored blue, partial genes are red, and absent genes are white, for each taxa. Taxa with 100% occupancy are colored green, while those with under 50% are colored purple. By default, the taxon order in the graph is the same order as given in the supermatrix alignment, which is then preserved in the matrix occupancy chart above. Taxa can be reordered arbitrarily in either file.
 
 The script can be run in the terminal as:
@@ -101,7 +101,7 @@ The script can be run in the terminal as:
 
 ![philippe2009_occupancy_matrix.png](https://github.com/wrf/supermatrix/blob/master/philippe2009_occupancy_matrix.png)
 
-## coverage_by_site ##
+## [coverage_by_site](https://github.com/wrf/supermatrix/blob/master/coverage_by_site.py) ##
 Simple diagnostic for checking coverage by site, providing a histogram of frequency of number of gaps. Change format using `-f`. The script can accept gzipped files.
 
 `coverage_by_site.py -a alignments/philippe2009_FullAlignment.phy -f phylip-relaxed`
@@ -149,6 +149,7 @@ Some alignments can be found in the [alignments folder](https://github.com/wrf/s
 * [Whelan 2017](https://figshare.com/articles/Ctenophora_Phylogeny_Datasets_and_Core_Orthologs/4484138) datasets of 350, 212, and 117 genes, from [Ctenophore relationships and their placement as the sister group to all other animals](https://www.nature.com/articles/s41559-017-0331-3)
 * [Betts 2018](https://bitbucket.org/bzxdp/betts_et_al_2017) dataset of 29 genes across all kingdoms, from [Integrated genomic and fossil evidence illuminates life’s early evolution and eukaryote origin](https://doi.org/10.1038/s41559-018-0644-x)
 * [Schwentner 2018](https://datadryad.org/resource/doi:10.5061/dryad.sn35910) dataset of 455 genes (519 partitions guessed) from 96 taxa, from [Tetraconatan phylogeny with special focus on Malacostraca and Branchiopoda—Highlighting the strength of taxon-specific matrices in phylogenomics](https://doi.org/10.1098/rspb.2018.1524)
+* [Marletaz 2019](https://zenodo.org/record/1403005) dataset of 1174 genes from 103 taxa, from [A New Spiralian Phylogeny Places the Enigmatic Arrow Worms among Gnathiferans](https://doi.org/10.1016/j.cub.2018.11.042)
 
 ## determination of evalues for each partition ##
 For programs like BLAST or HMMSEARCH, the bitscore, and ultimately the E-value, is dependent on the length of the matched portion. Thus, a good match of a short protein will never have a bitscore as high as a good match for a long protein. For this reason, a static E-value cutoff is not suitable for identifying orthologs in new species.
