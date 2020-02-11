@@ -2,7 +2,10 @@
 #
 # slice_alignment.py created 2017-11-26
 
-'''slice_alignment.py  last modified 2017-11-26
+'''slice_alignment.py  last modified 2020-02-10
+  extract specific sites from a large alignment
+  this could be sites determined to be important from another program,
+  such as undergoing selection, low coverage, active sites, etc.
 
 slice_alignment.py -a matrix.phy -i 135,289,455 -o subset_matrix.phy
 
@@ -72,11 +75,16 @@ def main(argv, wayout):
 	parser.add_argument('-o','--output', help="output name for new alignment", required=True)
 	args = parser.parse_args(argv)
 
+	# check if -i is file or not, treat accordingly
 	if os.path.isfile(args.index):
 		indexdict = get_indices(args.index)
 	else: # assume string
 		indexdict = string_to_indices(args.index)
+
+	# build sliced alignment
 	subalignment = slice_alignment(args.alignment, args.format, indexdict)
+
+	# write to file
 	AlignIO.write(subalignment, args.output, args.format)
 	print >> sys.stderr, "# Subalignment written to {}".format(args.output), time.asctime()
 

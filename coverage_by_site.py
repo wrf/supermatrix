@@ -2,11 +2,17 @@
 #
 # coverage_by_site.py  created 2017-11-27
 
-'''coverage_by_site.py  last modified 2018-02-13
+'''coverage_by_site.py  last modified 2020-02-10
   quick diagnostic of coverage
-  reports histogram of number of sites with x coverage to stdout
+  reports histogram of number of sites with C coverage to stdout
 
 coverage_by_site.py -a supermatrix.phy -f phylip-relaxed
+
+  fields are:
+num-missing-taxa    count-of-sites    num-taxa-with-site
+    num-missing-taxa = M, number of gaps in that column
+    count-of-sites = number of sites with missing-taxa M and coverage C
+    num-taxa-with-site = coverage, by N-taxa - num-missing-taxa
 
   optional matrix of coverage by site can be given with -m
   sites are given as numbers (starting with 1)
