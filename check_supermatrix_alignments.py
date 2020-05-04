@@ -2,7 +2,7 @@
 #
 # check_supermatrix_alignments.py created 2017-03-13
 
-'''check_supermatrix_alignments.py v1.3 2018-04-17
+'''check_supermatrix_alignments.py v1.31 2020-05-04
 tool to quickly check for abnormal sequences in fasta alignments
 
 check_supermatrix_alignments.py -a matrix.phy -p partitions.txt
@@ -128,6 +128,39 @@ def check_alignments(fullalignment, alignformat, partitions, makematrix=False, w
 		print >> sys.stderr, "# Matrix has {} ({:.2f}%) complete and {} ({:.2f}%) partial out of {} total genes".format( totaloccs[2], 100.0*totaloccs[2]/totalspots, totaloccs[1], 100.0*totaloccs[1]/totalspots, totalspots ), time.asctime()
 	return gapdict, halfgapdict, occmatrix
 
+def recheck_tabular_output(tabularfile):
+	gapdict = defaultdict(int)
+	halfgapdict = defaultdict(int)
+	totaloccs = defaultdict(int)
+	if tabularfile.rsplit('.',1)[1]=="gz": # autodetect gzip format
+		opentype = gzip.open
+		print >> sys.stderr, "# reading tabular file {} as gzipped".format(tabularfile), time.asctime()
+	else: # otherwise assume normal open
+		opentype = open
+		print >> sys.stderr, "# reading tabular file {}".format(tabularfile), time.asctime()
+	# parse tabular
+	for line in opentype(tabularfile,'rt'):
+		if line.strip():
+			lsplits = line.split("\t")
+			species = lsplits[0]
+			if species=="Species": # meaning header line, so skip
+				continue
+			for occupancyscore in lsplits[1:]:
+				occupancyscore = int(occupancyscore)
+				if occupancyscore==0:
+					gapdict[species] += 1
+				elif occupancyscore==1:
+					halfgapdict[species] += 1
+				elif occupancyscore==2:
+					pass
+				else:
+					sys.stderr.write("WARNING: unrecognized value in matrix {} for species {}\n".format(occupancyscore, species) )
+				totaloccs[occupancyscore] += 1
+	totalspots = sum(totaloccs.values())
+	print >> sys.stderr, "# Matrix has {} ({:.2f}%) complete and {} ({:.2f}%) partial out of {} total genes".format( totaloccs[2], 100.0*totaloccs[2]/totalspots, totaloccs[1], 100.0*totaloccs[1]/totalspots, totalspots ), time.asctime()
+	occmatrix = lsplits[1:] # use last values, which will be reused as partition length
+	return gapdict, halfgapdict, occmatrix
+
 def count_breaks(fullalignment, alignformat, partitions, makematrix=False, MAXBREAKTHRES=2):
 	'''read large alignment, return two dicts where key is species and values are number of unbroken sequences and sum of breaks'''
 	species_breaks = defaultdict(int) # total constant breaks by species
@@ -231,14 +264,16 @@ def main(argv, wayout):
 	parser.add_argument('-p','--partition', help="partition file for splitting large alignments")
 	parser.add_argument('--percent', action="store_true", help="report values in matrix by percent complete")
 	parser.add_argument('--pair-stats', help="pair stats file for gene names, to use alternate matrix header format")
+	parser.add_argument('-r','--rerun-tabular', help="rerun and recalculate results use the tabular output file as input")
 	args = parser.parse_args(argv)
 
-	if args.partition is None: # turn on percent mode if there is only
-		print >> sys.stderr, "# no partitions given, calculating percent of total dataset"
-		args.percent = True
-		partitions = None
-	else:
-		partitions = get_partitions(args.partition)
+	if args.rerun_tabular is None:
+		if args.partition is None: # turn on percent mode if there is only
+			print >> sys.stderr, "# no partitions given, calculating percent of total dataset"
+			args.percent = True
+			partitions = None
+		else:
+			partitions = get_partitions(args.partition)
 	genenames = parts_to_genes(args.pair_stats) if args.pair_stats else None
 
 	# check for breaks
@@ -248,7 +283,10 @@ def main(argv, wayout):
 		maindict, secondarydict, occmatrix = count_breaks(args.alignment, args.format, partitions, args.matrix_out, args.break_limit)
 	# otherwise check for coverage
 	else:
-		maindict, secondarydict, occmatrix = check_alignments(args.alignment, args.format, partitions, args.matrix_out, args.percent)
+		if args.rerun_tabular:
+			maindict, secondarydict, partitions = recheck_tabular_output(args.rerun_tabular)
+		else:
+			maindict, secondarydict, occmatrix = check_alignments(args.alignment, args.format, partitions, args.matrix_out, args.percent)
 
 	if args.matrix_out and occmatrix:
 		print >> sys.stderr, "# writing matrix to {}".format(args.matrix_out), time.asctime()
