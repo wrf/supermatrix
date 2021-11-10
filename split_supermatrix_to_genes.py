@@ -2,7 +2,7 @@
 #
 # split_supermatrix_to_genes.py created 2018-02-12
 
-'''split_supermatrix_to_genes.py v1.0 2018-03-22
+'''split_supermatrix_to_genes.py v1.0 2021-11-10
 tool to re-partition supermatrices into fasta files for each gene
 
 split_supermatrix_to_genes.py -a matrix.phy -p partitions.txt -d aln_dir -f phylip-relaxed
@@ -30,21 +30,21 @@ def get_partitions(partitionfile):
 			for block in blocks:
 				alignindex = tuple( int(i) for i in block.split(":") ) # split '1:136' into ( 1,136 )
 				partitions.append(alignindex)
-	print >> sys.stderr, "# read {} partitions from {}".format(len(partitions), partitionfile), time.asctime()
+	sys.stderr.write( "# read {} partitions from {}  {}\n".format(len(partitions), partitionfile, time.asctime() ) )
 	return partitions
 
 def split_genes(fullalignment, alignformat, alndir, partitions, fileprefix):
 	'''read large alignment and write one fasta file for each taxa containing all proteins'''
 	if fullalignment.rsplit('.',1)[1]=="gz": # autodetect gzip format
 		opentype = gzip.open
-		print >> sys.stderr, "# reading alignment {} as gzipped".format(fullalignment), time.asctime()
+		sys.stderr.write( "# reading alignment {} as gzipped  {}\n".format(fullalignment, time.asctime() ) )
 	else: # otherwise assume normal open
 		opentype = open
-		print >> sys.stderr, "# reading alignment {}".format(fullalignment), time.asctime()
+		sys.stderr.write( "# reading alignment {}  {}\n".format(fullalignment, time.asctime() ) )
 	alignedseqs = AlignIO.read(opentype(fullalignment), alignformat)
 	num_species = len(alignedseqs)
 	al_length = alignedseqs.get_alignment_length()
-	print >> sys.stderr, "# alignment contains {} taxa with {} sites".format( num_species, al_length ), time.asctime()
+	sys.stderr.write( "# alignment contains {} taxa with {} sites  {}\n".format( num_species, al_length , time.asctime() ) )
 	filecounter = 0
 	for part in partitions:
 		alignpart = alignedseqs[:, part[0]-1:part[1] ] # alignment of each partition only
@@ -53,7 +53,7 @@ def split_genes(fullalignment, alignformat, alndir, partitions, fileprefix):
 		genefilename = "{}".format( os.path.join(alndir, bufferedpartstring.format(*part)) )
 		AlignIO.write(alignpart, genefilename, "fasta")
 		filecounter += 1
-	print >> sys.stderr, "# split alignment into {} files".format(filecounter), time.asctime()
+	sys.stderr.write( "# split alignment into {} files  {}\n".format(filecounter, time.asctime() ) )
 
 def main(argv, wayout):
 	if not len(argv):

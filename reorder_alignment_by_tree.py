@@ -2,7 +2,7 @@
 #
 # reorder_alignment_by_tree.py created 2017-11-03
 
-'''reorder_alignment_by_tree.py  last modified 2017-11-03
+'''reorder_alignment_by_tree.py  last modified 2021-11-10
 
 reorder_alignment_by_tree.py -a matrix.phy -T tree.nex -f phylip-relaxed > reordered.aln
 
@@ -32,25 +32,25 @@ def main(argv, wayout):
 
 	if args.alignment.rsplit('.',1)[1]=="gz": # autodetect gzip format
 		opentype = gzip.open
-		print >> sys.stderr, "# reading alignment {} as gzipped".format(args.alignment), time.asctime()
+		sys.stderr.write( "# reading alignment {} as gzipped  {}\n".format(args.alignment, time.asctime() ) )
 	else: # otherwise assume normal open
 		opentype = open
-		print >> sys.stderr, "# reading alignment {}".format(args.alignment), time.asctime()
+		sys.stderr.write( "# reading alignment {}  {}\n".format(args.alignment, time.asctime() ) )
 	alignedseqs = AlignIO.read(opentype(args.alignment), args.format)
-	print >> sys.stderr, "# Alignment contains {} taxa for {} sites, including gaps".format( len(alignedseqs), alignedseqs.get_alignment_length() )
+	sys.stderr.write( "# Alignment contains {} taxa for {} sites, including gaps\n".format( len(alignedseqs), alignedseqs.get_alignment_length() ) )
 
 	seqdict = {}
 	for seqrec in alignedseqs:
 		seqdict[seqrec.id] = seqrec
 
-	print >> sys.stderr, "# reading tree {}".format(args.matrix_tree), time.asctime()
+	sys.stderr.write( "# reading tree {}  {}\n".format(args.matrix_tree, time.asctime() ) )
 	tree = Phylo.read(args.matrix_tree,"nexus")
 	cladecount = 0
 	for clade in tree.get_terminals():
 		cleanname = str(clade.name).replace("'","").replace('"','')
 		wayout.write( seqdict[cleanname].format("fasta") )
 		cladecount += 1
-	print >> sys.stderr, "# wrote {} taxa".format(cladecount), time.asctime()
+	sys.stderr.write( "# wrote {} taxa  {}\n".format(cladecount, time.asctime() ) )
 
 if __name__ == "__main__":
 	main(sys.argv[1:], sys.stdout)
