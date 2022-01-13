@@ -161,3 +161,27 @@ Considering the chart below, each point represents a self-hit from the HMM profi
 It is immediately evident that the highest E-values belong to the longest proteins. Thus, it is clear that a single value cannot be used as a filter for all partitions in a supermatrix. However, even for a long protein, it is clear that many proteins in the original set have E-values substantially lower than the max. These are partial proteins that are kept in the matrix. Thus, the threshold for each partition must be determined primarily by the long proteins, not the lowest value.
 
 A single threshold by E-value based on only long sequences would work, but this would never allow partial matches, as the target proteins would probably have to be the same length as most of the complete sequences. For this, an additional heuristic is used, based on the [bitscore-per-length (BpL)](https://github.com/wrf/supermatrix/blob/master/misc_analyses/philippe2009_w_coral_selfhits_normalized.pdf). This measurement can effectively sort out out-paralogs, but can also help to identify partial sequences. This is necessary because a closely related protein may be full length, and ultimately get a higher bitscore, than a real protein that is only partially complete (say in a transcriptome). Thus, any hits that have a higher BpL than the mean for that partition are kept anyway, even if they are too short, and this takes precedent over a longer hit with a much lower BpL.
+
+## How good is BLAST bitscore for finding true homologs ##
+I investigated this by blasting the [Parra 2007](https://doi.org/10.1093/bioinformatics/btm071) KOG set against itself, allowing for 16 hits each. This is 6 for each KOG (that is, 6 species) and then up to 10 more.
+This produced the graph below, there self hits are the black hollow circles, hits to the same KOG are within on color (colors are random) and hits to other KOGs are black. The dotted lines are the cutoff at bitscore 200 and the shortest protein with a bitscore of 200 (which is 100AAs).
+
+All sequences hit themselves best, followed by all other sequences within the same KOG; that was not surprising. Again, there is a clear pattern of max bitscore as a function of length, with an average around `2bits/AA`. Here is a zoom of the shorter proteins, which is most of them.
+
+![parra_blast_v_bitscore_chart_v2.jpg](https://github.com/wrf/supermatrix/blob/master/misc_analyses/bitscore_length/parra_blast_v_bitscore_chart_v2.jpg)
+
+You can see the dark points at the bottom of the graph, which for the most part stay below 200 bits. That is fine for large proteins, but for under 200AAs, that is the bulk of the true hits as well. There are a few strange zones between 400 and 600. Those are probably due to certain proteins have good hits to the next best KOG which are better than some real hits of similar sized proteins. To say another way, real homologs will have a relatively better bitscore than off-target hits, but not an absolutely better one.
+
+Another dotted line is added for the function of `l/2`. This type seems to better capture the off target hits.
+
+Next I try to normalize to spread them out and better view the length-bitscore relationship. The graph below divides the bitscore by length. Self-hits are nearly all at `2l`.
+
+![parra_blast_v_bitscore_chart_v3.jpg](https://github.com/wrf/supermatrix/blob/master/misc_analyses/bitscore_length/parra_blast_v_bitscore_chart_v3.jpg)
+
+In the previous graphs, the off target hits were at the bottom, but if a cutoff of 0.4 (bitscore/query length) is used, this excludes basically only off targets and is not restrictive on the size of proteins.
+
+**A static cutoff is not an appropriate filter for gene clustering, but this is still commonly used!** 
+
+Unfortunately a few off targets slip through that filter too. That would suggest that e-value or bitscore cutoffs basically have to be protein specific, or have some other way of correctly sorting out the clusters. In this set, those off hits will have true hits that are still higher in bitscore, so maybe this could alternatively use some threshold of taking no more sequences than number of species used in the clade or set. 
+
+
