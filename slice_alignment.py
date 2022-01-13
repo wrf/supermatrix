@@ -2,7 +2,7 @@
 #
 # slice_alignment.py created 2017-11-26
 
-'''slice_alignment.py  last modified 2020-02-10
+'''slice_alignment.py  last modified 2022-01-13
   extract specific sites from a large alignment
   this could be sites determined to be important from another program,
   such as undergoing selection, low coverage, active sites, etc.
@@ -30,39 +30,39 @@ def get_indices(indexfile):
 			positions = line.split(",") # split "136,299,468,486"]
 			for pos in positions: # keep positions as native numbers, 1-100, not 0-99
 				indexdict[int(pos)] = True
-	print >> sys.stderr, "# read {} positions from {}".format(len(indexdict), indexfile), time.asctime()
+	print( "# read {} positions from {}  {}".format(len(indexdict), indexfile, time.asctime() ), file=sys.stderr )
 	return indexdict
 
 def string_to_indices(indexstring):
 	indexdict = {} # key is int of index, value is True
-	positions = line.split(",") # split "136,299,468,486"]
+	positions = indexstring.split(",") # split "136,299,468,486"]
 	for pos in positions: # keep positions as native numbers, 1-100, not 0-99
 		indexdict[int(pos)] = True
-	print >> sys.stderr, "# read {} positions from input".format( len(indexdict) ), time.asctime()
+	print( "# read {} positions from input  {}".format( len(indexdict) , time.asctime() ), file=sys.stderr )
 	return indexdict
 
 def slice_alignment(fullalignment, alignformat, indexdict):
 	'''read alignment, and return a new alignment where partitions are reordered from highest coverage to lowest'''
 	if fullalignment.rsplit('.',1)[1]=="gz": # autodetect gzip format
 		opentype = gzip.open
-		print >> sys.stderr, "# reading alignment {} as gzipped".format(fullalignment), time.asctime()
+		print( "# reading alignment {} as gzipped  {}".format(fullalignment, time.asctime() ), file=sys.stderr )
 	else: # otherwise assume normal open
 		opentype = open
-		print >> sys.stderr, "# reading alignment {}".format(fullalignment), time.asctime()
+		print( "# reading alignment {}  {}".format(fullalignment, time.asctime() ), file=sys.stderr )
 
 	alignedseqs = AlignIO.read(opentype(fullalignment), alignformat)
 	num_species = len(alignedseqs)
-	print >> sys.stderr, "# alignment has {} taxa with {} positions".format(num_species, alignedseqs.get_alignment_length()), time.asctime()
+	print( "# alignment has {} taxa with {} positions  {}".format(num_species, alignedseqs.get_alignment_length(), time.asctime() ), file=sys.stderr )
 
 	newalign = alignedseqs[:,0:0] # start with blank alignment
 
-	print >> sys.stderr, "# slicing alignment", time.asctime()
+	print( "# slicing alignment  {}".format( time.asctime() ), file=sys.stderr )
 	for pos in range(alignedseqs.get_alignment_length()):
 		if pos+1 in indexdict:
 			alignpart = alignedseqs[:, pos:pos+1 ] # alignment of each partition only
-			#print >> sys.stderr, "keeping pos {}".format(pos+1)
+			#print( "keeping pos {}".format(pos+1)
 			newalign += alignpart
-	print >> sys.stderr, "# alignment has {} taxa with {} sites".format( len(newalign), newalign.get_alignment_length() ), time.asctime()
+	print( "# alignment has {} taxa with {} sites  {}".format( len(newalign), newalign.get_alignment_length() , time.asctime() ), file=sys.stderr )
 	return newalign
 
 def main(argv, wayout):
@@ -86,7 +86,7 @@ def main(argv, wayout):
 
 	# write to file
 	AlignIO.write(subalignment, args.output, args.format)
-	print >> sys.stderr, "# Subalignment written to {}".format(args.output), time.asctime()
+	print( "# Subalignment written to {}  {}".format(args.output, time.asctime() ), file=sys.stderr )
 
 if __name__ == "__main__":
 	main(sys.argv[1:], sys.stdout)
