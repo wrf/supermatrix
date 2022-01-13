@@ -101,6 +101,20 @@ The script can be run in the terminal as:
 
 ![philippe2009_occupancy_matrix.png](https://github.com/wrf/supermatrix/blob/master/philippe2009_occupancy_matrix.png)
 
+## [constant_breaker_plot](https://github.com/wrf/supermatrix/blob/master/constant_breaker_plot.R) ##
+Again, making use of [compare_supermatrix_alignments.py](https://github.com/wrf/supermatrix/blob/master/compare_supermatrix_alignments.py), this plot shows probably assembly errors (for genome/txome) or annotation errors (for genomes, bad exon/CDS calls). The plot displays the maximum "constant breaker" score for each gene for each taxon. The "constant breaker" score is an accumulated penalty for a long run of amino acids that differ from an overall conserved region. The principle is that sites that are constant in nearly all species are improbably changed in any given taxon, **including fast-evolving taxa**, and this is particularly true for [`Gly` or `Pro`](https://github.com/wrf/heteropecilly/tree/master/aa_counts), where a series of "constant-breaking" sites are likely indicative of technical errors.
+
+Below shows an example plot using an expanded alignment from the Philippe 2009 matrix. Dark purple spots indicate a gene with a long constant-breaking stretch. The color depends on the length of the longest run for that gene, typically only 1 per gene if any. Unsurprisingly, the human genome, being well-annotated and assembled, appears to have 0 of these errors.
+
+![metazoa_v11_select_const_break_matrix.png](https://github.com/wrf/supermatrix/blob/master/misc_analyses/metazoa_v11_select_const_break_matrix.png)
+
+Example alignments from gene 2 and gene 4 are shown below, showing the regions that do not align correctly, and are almost certainly errors.
+
+![metazoa_const_breaker_ex_g2.png](https://github.com/wrf/supermatrix/blob/master/misc_analyses/metazoa_const_breaker_ex_g2.png)
+
+![metazoa_const_breaker_ex_g4.png](https://github.com/wrf/supermatrix/blob/master/misc_analyses/metazoa_const_breaker_ex_g4.png)
+
+
 ## [coverage_by_site](https://github.com/wrf/supermatrix/blob/master/coverage_by_site.py) ##
 Simple diagnostic for checking coverage by site, providing a histogram of frequency of number of gaps. Change format using `-f`. The script can accept gzipped files.
 
