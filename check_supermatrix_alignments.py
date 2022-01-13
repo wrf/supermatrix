@@ -229,6 +229,13 @@ def count_breaks(fullalignment, alignformat, partitions, makematrix=False, MAXBR
 				# only keep running total if site is rare
 				# meaning frequency of letter is less than N/n
 				# where N is number of taxa, and n is number of AAs at that site
+				# that is, if there are 4 AAs across 100 taxa, then the const_breaker_thres is 25
+				#
+				# for example, to calculate inverse_freq
+				# if ratio is 99-G to 1-S
+				# then the inverse_freq for all G-taxa would be 1/99, so appx 0.01 pts
+				# while for the S-taxon, the score would be 1/1, so 1pt
+				# this severely penalizes any given AA occurring even twice, so only really highlights true constant breaks 
 				elif aa_freq_by_site[k][letter] < const_breaker_thres[k]:
 					inverse_freq = 1.0 / aa_freq_by_site[k][letter]
 					runningscore += inverse_freq
@@ -255,7 +262,7 @@ def main(argv, wayout):
 	parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description=__doc__)
 	parser.add_argument('-a','--alignment', help="supermatrix alignment")
 	parser.add_argument('-b','--breaks', action="store_true", help="score consecutive breaks instead of counting coverage")
-	parser.add_argument('-B','--break-limit', type=int, default=2, help="max consecutive score to count gene as unbroken")
+	parser.add_argument('-B','--break-limit', type=int, default=2, help="max consecutive score to count gene as unbroken [default:2]")
 	parser.add_argument('-f','--format', default="fasta", help="alignment format [fasta]")
 	parser.add_argument('-H','--header', action="store_true", help="include header line")
 	parser.add_argument('-m','--matrix-out', help="name for optional matrix-occupancy output file")
