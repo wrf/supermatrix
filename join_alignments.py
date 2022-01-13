@@ -2,7 +2,7 @@
 # join_alignments.py v1.0 created 2017-08-15
 
 '''
-join_alignments.py v1.0 2018-03-22
+join_alignments.py v1.1  last modified 2022-01-13
 
     specify multiple alignments with -a
     species names are expected to be the same, perhaps separated by an
@@ -54,7 +54,7 @@ def main(argv, wayout):
 		alignment = AlignIO.read(alignfile, args.format)
 		al_length = alignment.get_alignment_length()
 		targetlength = runningsum + al_length
-		print >> sys.stderr, "# {} contains {} taxa for {} sites".format( alignfile, len(alignment), al_length )
+		print( "# {} contains {} taxa for {} sites".format( alignfile, len(alignment), al_length ), file=sys.stderr) 
 
 		# reset current keys each new alignment
 		# must be done to catch for taxa that were in earlier alignments but not in current one
@@ -70,7 +70,7 @@ def main(argv, wayout):
 					existingkeys.pop(taxon_id)
 					superprotsbytaxa[taxon_id] += str(seqrec.seq)
 				except KeyError:
-					print >> sys.stderr, "WARNING: {} OCCURS MORE THAN ONCE IN ALIGNMENT {}".format( taxon_id, alignfile )
+					print(  "WARNING: {} OCCURS MORE THAN ONCE IN ALIGNMENT {}".format( taxon_id, alignfile ) , file=sys.stderr )
 					problemtaxa += 1
 					problemalignments[alignfile] = True
 			else: # if that taxa is not yet in growing matrix, fill entry with gaps
@@ -82,22 +82,22 @@ def main(argv, wayout):
 		# extend the current running sum of lengths and update partitions
 		partitionlist.append("{}:{}".format(runningsum+1, targetlength) )
 		runningsum += al_length
-	print >> sys.stderr, "# Finished parsing {} alignments".format( aligncounter )
+	print( "# Finished parsing {} alignments for {} total taxa".format( aligncounter, len(superprotsbytaxa) ) , file=sys.stderr )
 
 	### BUILD SUPERMATRIX
 	with open(args.supermatrix,'w') as sm:
 		if args.sort: # sort alphabetically
 			for taxon in sorted( superprotsbytaxa.keys() ):
-				print >> sm, ">{}\n{}".format(taxon, superprotsbytaxa[taxon])
+				print( ">{}\n{}".format(taxon, superprotsbytaxa[taxon]) , file=sm )
 		else: # sequence order is arbitrary, based on whatever the first alignment had
-			for taxon,sequence in superprotsbytaxa.iteritems():
-				print >> sm, ">{}\n{}".format(taxon, sequence)
-		print >> sys.stderr, "# Supermatrix written to {}".format(args.supermatrix), time.asctime()
+			for taxon,sequence in superprotsbytaxa.items():
+				print( ">{}\n{}".format(taxon, sequence) , file=sm )
+		print( "# Supermatrix written to {}  {}".format( args.supermatrix, time.asctime() ), file=sys.stderr )
 		with open("{}.partition.txt".format(args.supermatrix),'w') as pf:
-			print >> pf, ",".join(partitionlist)
+			print( ",".join(partitionlist), file=pf )
 
 	if problemalignments:
-		print >> sys.stderr, "WARNING: {} ALIGNMENTS HAVE {} REDUNDANT TAXA".format( len(problemalignments), problemtaxa )
+		print( "WARNING: {} ALIGNMENTS HAVE {} REDUNDANT TAXA".format( len(problemalignments), problemtaxa ) , file=sys.stderr )
 
 if __name__ == "__main__":
 	main(sys.argv[1:], sys.stdout)

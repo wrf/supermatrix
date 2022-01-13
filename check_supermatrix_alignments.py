@@ -2,7 +2,7 @@
 #
 # check_supermatrix_alignments.py created 2017-03-13
 
-'''check_supermatrix_alignments.py v1.31 2020-05-04
+'''check_supermatrix_alignments.py v1.4 2022-01-13
 tool to quickly check for abnormal sequences in fasta alignments
 
 check_supermatrix_alignments.py -a matrix.phy -p partitions.txt
@@ -56,13 +56,13 @@ def get_partitions(partitionfile):
 			for block in blocks:
 				alignindex = tuple( int(i) for i in block.split(":") ) # split '1:136' into ( 1,136 )
 				partitions.append(alignindex)
-	print >> sys.stderr, "# read {} partitions from {}".format(len(partitions), partitionfile), time.asctime()
+	print( "# read {} partitions from {}  {}".format(len(partitions), partitionfile, time.asctime() ), file=sys.stderr )
 	return partitions
 
 def parts_to_genes(pairstatsfile):
 	'''read tabular pair-wise gene stats, return a dict where key is partition and value is gene'''
 	part_to_gene = {}
-	print >> sys.stderr, "# reading partitions and gene names from {}".format(pairstatsfile), time.asctime()
+	print( "# reading partitions and gene names from {}  {}".format(pairstatsfile, time.asctime() ), file=sys.stderr )
 	for line in open(pairstatsfile,'r'):
 		line = line.strip()
 		if line:
@@ -72,7 +72,7 @@ def parts_to_genes(pairstatsfile):
 			gene = lsplits[1].split("|")[-1].replace("_HUMAN","")
 			partition = tuple( int(i) for i in lsplits[0].split("_")[-1].split("-") )
 			part_to_gene[partition] = gene
-	print >> sys.stderr, "# found {} gene names".format(len(part_to_gene)), time.asctime()
+	print( "# found {} gene names  {}".format(len(part_to_gene), time.asctime() ), file=sys.stderr )
 	return part_to_gene
 
 def check_alignments(fullalignment, alignformat, partitions, makematrix=False, writepercent=False):
@@ -85,12 +85,12 @@ def check_alignments(fullalignment, alignformat, partitions, makematrix=False, w
 
 	if fullalignment.rsplit('.',1)[1]=="gz": # autodetect gzip format
 		opentype = gzip.open
-		print >> sys.stderr, "# reading alignment {} as gzipped".format(fullalignment), time.asctime()
+		print( "# reading alignment {} as gzipped  {}".format(fullalignment, time.asctime() ), file=sys.stderr )
 	else: # otherwise assume normal open
 		opentype = open
-		print >> sys.stderr, "# reading alignment {}".format(fullalignment), time.asctime()
+		print( "# reading alignment {}  {}".format(fullalignment, time.asctime() ), file=sys.stderr )
 	alignedseqs = AlignIO.read(opentype(fullalignment), alignformat)
-	print >> sys.stderr, "# Alignment contains {} taxa for {} sites, including gaps".format( len(alignedseqs), alignedseqs.get_alignment_length() )
+	print( "# Alignment contains {} taxa for {} sites, including gaps".format( len(alignedseqs), alignedseqs.get_alignment_length() ) , file=sys.stderr )
 	for seqrec in alignedseqs: # all species must be counted once
 		gapdict[seqrec.id] = 0
 		if occmatrix is not None:
@@ -123,9 +123,9 @@ def check_alignments(fullalignment, alignformat, partitions, makematrix=False, w
 
 	totalspots = sum(totaloccs.values())
 	if writepercent:
-		print >> sys.stderr, "# Matrix has {} ({:.2f}%) complete and {} ({:.2f}%) empty out of {} total genes".format( totaloccs[100], 100.0*totaloccs[100]/totalspots, totaloccs[0], 100.0*totaloccs[0]/totalspots, totalspots ), time.asctime()
+		print( "# Matrix has {} ({:.2f}%) complete and {} ({:.2f}%) empty out of {} total genes  {}".format( totaloccs[100], 100.0*totaloccs[100]/totalspots, totaloccs[0], 100.0*totaloccs[0]/totalspots, totalspots , time.asctime() ), file=sys.stderr )
 	else:
-		print >> sys.stderr, "# Matrix has {} ({:.2f}%) complete and {} ({:.2f}%) partial out of {} total genes".format( totaloccs[2], 100.0*totaloccs[2]/totalspots, totaloccs[1], 100.0*totaloccs[1]/totalspots, totalspots ), time.asctime()
+		print( "# Matrix has {} ({:.2f}%) complete and {} ({:.2f}%) partial out of {} total genes  {}".format( totaloccs[2], 100.0*totaloccs[2]/totalspots, totaloccs[1], 100.0*totaloccs[1]/totalspots, totalspots , time.asctime() ), file=sys.stderr )
 	return gapdict, halfgapdict, occmatrix
 
 def recheck_tabular_output(tabularfile):
@@ -134,10 +134,10 @@ def recheck_tabular_output(tabularfile):
 	totaloccs = defaultdict(int)
 	if tabularfile.rsplit('.',1)[1]=="gz": # autodetect gzip format
 		opentype = gzip.open
-		print >> sys.stderr, "# reading tabular file {} as gzipped".format(tabularfile), time.asctime()
+		print( "# reading tabular file {} as gzipped  {}".format(tabularfile, time.asctime() ), file=sys.stderr )
 	else: # otherwise assume normal open
 		opentype = open
-		print >> sys.stderr, "# reading tabular file {}".format(tabularfile), time.asctime()
+		print( "# reading tabular file {}  {}".format(tabularfile, time.asctime() ), file=sys.stderr )
 	# parse tabular
 	for line in opentype(tabularfile,'rt'):
 		if line.strip():
@@ -157,7 +157,7 @@ def recheck_tabular_output(tabularfile):
 					sys.stderr.write("WARNING: unrecognized value in matrix {} for species {}\n".format(occupancyscore, species) )
 				totaloccs[occupancyscore] += 1
 	totalspots = sum(totaloccs.values())
-	print >> sys.stderr, "# Matrix has {} ({:.2f}%) complete and {} ({:.2f}%) partial out of {} total genes".format( totaloccs[2], 100.0*totaloccs[2]/totalspots, totaloccs[1], 100.0*totaloccs[1]/totalspots, totalspots ), time.asctime()
+	print( "# Matrix has {} ({:.2f}%) complete and {} ({:.2f}%) partial out of {} total genes  {}".format( totaloccs[2], 100.0*totaloccs[2]/totalspots, totaloccs[1], 100.0*totaloccs[1]/totalspots, totalspots , time.asctime() ), file=sys.stderr )
 	occmatrix = lsplits[1:] # use last values, which will be reused as partition length
 	return gapdict, halfgapdict, occmatrix
 
@@ -169,15 +169,15 @@ def count_breaks(fullalignment, alignformat, partitions, makematrix=False, MAXBR
 
 	if fullalignment.rsplit('.',1)[1]=="gz": # autodetect gzip format
 		opentype = gzip.open
-		print >> sys.stderr, "# reading alignment {} as gzipped".format(fullalignment), time.asctime()
+		print( "# reading alignment {} as gzipped  {}".format(fullalignment, time.asctime() ), file=sys.stderr )
 	else: # otherwise assume normal open
 		opentype = open
-		print >> sys.stderr, "# reading alignment {}".format(fullalignment), time.asctime()
+		print( "# reading alignment {}  {}".format(fullalignment, time.asctime() ), file=sys.stderr )
 	alignedseqs = AlignIO.read(opentype(fullalignment), alignformat)
 
 	numtaxa = len(alignedseqs)
 	alignlength = alignedseqs.get_alignment_length()
-	print >> sys.stderr, "# Alignment contains {} taxa for {} sites, including gaps".format( numtaxa, alignlength )
+	print( "# Alignment contains {} taxa for {} sites, including gaps".format( numtaxa, alignlength ) , file=sys.stderr )
 
 	for seqrec in alignedseqs: # all species must be counted once
 		if occmatrix is not None:
@@ -269,7 +269,7 @@ def main(argv, wayout):
 
 	if args.rerun_tabular is None:
 		if args.partition is None: # turn on percent mode if there is only
-			print >> sys.stderr, "# no partitions given, calculating percent of total dataset"
+			print( "# no partitions given, calculating percent of total dataset" , file=sys.stderr )
 			args.percent = True
 			partitions = None
 		else:
@@ -289,7 +289,7 @@ def main(argv, wayout):
 			maindict, secondarydict, occmatrix = check_alignments(args.alignment, args.format, partitions, args.matrix_out, args.percent)
 
 	if args.matrix_out and occmatrix:
-		print >> sys.stderr, "# writing matrix to {}".format(args.matrix_out), time.asctime()
+		print( "# writing matrix to {}  {}".format(args.matrix_out, time.asctime() ), file=sys.stderr )
 		with open(args.matrix_out,'w') as mo:
 			# generate header line
 			if args.pair_stats:
@@ -298,7 +298,7 @@ def main(argv, wayout):
 				headerline = ["Species","PercentOccupancy"]
 			else:
 				headerline = ["Species"] + ["{}-{}".format(*part) for part in partitions]
-			print >> mo, args.matrix_delimiter.join(headerline)
+			print( args.matrix_delimiter.join(headerline) , file=mo )
 			# print occupancy by each species
 			if args.matrix_tree: # use order from a rooted nexus-format tree
 				occdict = {} # convert occmatrix from list of lists to dict of lists
@@ -308,32 +308,33 @@ def main(argv, wayout):
 				for clade in tree.get_terminals():
 					cleanname = str(clade.name).replace("'","").replace('"','')
 					try:
-						print >> mo, args.matrix_delimiter.join( [cleanname] + occdict[cleanname] )
+						print( args.matrix_delimiter.join( [cleanname] + occdict[cleanname] ) , file=mo )
 					except KeyError:
-						print >> sys.stderr, "WARNING: CANNOT FIND TAXA {} IN ALIGNMENT, SKIPPING".format(cleanname)
+						print( "WARNING: CANNOT FIND TAXA {} IN ALIGNMENT, SKIPPING".format(cleanname) , file=sys.stderr )
 			else: # just use default order from the alignment
 				for occbysplist in occmatrix:
-					print >> mo, args.matrix_delimiter.join(occbysplist)
+					print( args.matrix_delimiter.join(occbysplist) , file=mo )
 
 	if args.percent: # just print total percentage of sites
 		if args.header:
-			#                  0           1           2    3
-			print >> wayout, "Species\tSites\tGaps\tG%"
-		for k,v in sorted(maindict.iteritems(), reverse=True, key=lambda x: x[1]):
-			print >> wayout, "{}\t{}\t{}\t{:.2f}".format(k, secondarydict[k], v, v*100.0/secondarydict[k])
+			#          0       1      2    3
+			print( "Species\tSites\tGaps\tG%" , file=wayout )
+		for k,v in sorted(maindict.items(), reverse=True, key=lambda x: x[1]):
+			print( "{}\t{}\t{}\t{:.2f}".format(k, secondarydict[k], v, v*100.0/secondarydict[k]) , file=wayout )
 	elif args.breaks:
 		if args.header:
-			#                  0           1           2    3     4
-			print >> wayout, "Species\tPartitions\tComplete\tM%\tBreaksum"
+			#          0           1           2    3     4
+			print( "Species\tPartitions\tComplete\tM%\tBreaksum" , file=wayout )
 		numparts = len(partitions)
-		for k,v in sorted(maindict.iteritems(), reverse=True, key=lambda x: x[1]):
-			print >> wayout, "{}\t{}\t{}\t{:.2f}\t{}".format(k, numparts, v, v*100.0/numparts, secondarydict[k])
+		for k,v in sorted(maindict.items(), reverse=True, key=lambda x: x[1]):
+			print( "{}\t{}\t{}\t{:.2f}\t{}".format(k, numparts, v, v*100.0/numparts, secondarydict[k]) , file=wayout )
 	else: # only print normal output if not in percent mode
 		if args.header:
-			#                  0           1           2    3     4      5
-			print >> wayout, "Species\tPartitions\tMissing\tM%\tPartial\tP%"
+			#        0           1           2    3     4      5
+			print( "Species\tPartitions\tMissing\tM%\tPartial\tP%" , file=wayout )
 		numparts = len(partitions)
-		for k,v in sorted(maindict.iteritems(), reverse=True, key=lambda x: x[1]):
-			print >> wayout, "{}\t{}\t{}\t{:.2f}\t{}\t{:.2f}".format(k, numparts, v, v*100.0/numparts, secondarydict[k], secondarydict[k]*100.0/numparts)
+		for k,v in sorted(maindict.items(), reverse=True, key=lambda x: x[1]):
+			print( "{}\t{}\t{}\t{:.2f}\t{}\t{:.2f}".format(k, numparts, v, v*100.0/numparts, secondarydict[k], secondarydict[k]*100.0/numparts) , file=wayout )
+
 if __name__ == "__main__":
 	main(sys.argv[1:], sys.stdout)
