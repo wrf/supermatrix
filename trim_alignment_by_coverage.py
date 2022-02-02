@@ -2,7 +2,7 @@
 #
 # trim_alignment_by_coverage.py  created 2017-11-27
 
-'''trim_alignment_by_coverage.py  last modified 2018-03-28
+'''trim_alignment_by_coverage.py  last modified 2022-02-02
     remove all gaps or sites with only a few taxa (default 1, set by -c)
 
 trim_alignment_by_coverage.py -a alignment.phy -f phylip-relaxed
@@ -26,14 +26,14 @@ def trim_alignment(fullalignment, alignformat, covcutoff):
 	'''read single alignment, print out new alignment with low-coverage sites removed'''
 	if fullalignment.rsplit('.',1)[1]=="gz": # autodetect gzip format
 		opentype = gzip.open
-		print >> sys.stderr, "# reading alignment {} as gzipped".format(fullalignment), time.asctime()
+		sys.stderr.write( "# reading alignment {} as gzipped  {}\n".format(fullalignment, time.asctime() ) )
 	else: # otherwise assume normal open
 		opentype = open
-		print >> sys.stderr, "# reading alignment {}".format(fullalignment), time.asctime()
+		sys.stderr.write( "# reading alignment {}  {}\n".format(fullalignment, time.asctime() ) )
 	alignedseqs = AlignIO.read(opentype(fullalignment), alignformat)
 	numtaxa = len(alignedseqs)
 	allength = alignedseqs.get_alignment_length()
-	print >> sys.stderr, "# Alignment contains {} taxa for {} sites, including gaps".format( numtaxa, allength )
+	sys.stderr.write( "# Alignment contains {} taxa for {} sites, including gaps\n".format( numtaxa, allength ) )
 
 	allgaps = 0
 	trimmedsites = 0
@@ -52,7 +52,7 @@ def trim_alignment(fullalignment, alignformat, covcutoff):
 			else:
 				trimmedsites += 1
 	newalignname = "{}.c{}trim".format(fullalignment, covcutoff)
-	print >> sys.stdout, "# {}\t{} gaps\t{} trimmed\t{} kept".format( newalignname, allgaps, trimmedsites, keptsites)
+	print("# {}\t{} gaps\t{} trimmed\t{} kept".format( newalignname, allgaps, trimmedsites, keptsites), file=sys.stdout)
 	AlignIO.write(newalign, newalignname, alignformat)
 
 def main(argv, wayout):
