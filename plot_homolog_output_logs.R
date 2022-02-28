@@ -13,7 +13,7 @@
 args = commandArgs(trailingOnly=TRUE)
 
 input_logfile = args[1]
-#input_logfile = "~/project/lactobacillus_genomics/lactobacillus_v3.2022-02-25-092353.mh.log"
+#input_logfile = "~/project/lactobacillus_genomics/lactobacillus_v3.2022-02-28-160139.mh.log"
 outputfile = gsub("([\\w/]+)\\....$","\\1.pdf",input_logfile,perl=TRUE)
 
 # read log, and then parse subparts of the log file
@@ -22,8 +22,16 @@ log_data = read.table(input_logfile, stringsAsFactors = FALSE,skip=2, header=FAL
 
 clustcounts = log_data[log_data$V1=="N_seqs",]
 taxacounts = log_data[log_data$V1=="N_taxa",]
-count_by_sp = log_data[log_data$V1=="N_genes",]
+genes_in_clusters_by_sp = log_data[log_data$V1=="N_genes",]
 
+# these might be empty is blast processing step was skipped
+total_prots_by_sp = log_data[log_data$V1=="T_genes",]
+blast_hits_by_sp = log_data[log_data$V1=="N_bhits",]
+prots_no_hits = as.integer(total_prots_by_sp$V3) - as.integer(blast_hits_by_sp$V3)
+hits_no_clusters = as.integer(blast_hits_by_sp$V3) - as.integer(genes_in_clusters_by_sp$V3)
+hits_w_clusters = as.integer(genes_in_clusters_by_sp$V3)
+
+#
 input_cluster_file = args[2]
 #input_cluster_file = "~/project/lactobacillus_genomics/fasta_clusters.lactobacillus_v3.txt"
 
@@ -33,6 +41,7 @@ cluster_data = read.table(input_cluster_file, header=FALSE, sep="\t")
 num_sequences = as.integer(cluster_data$V2)
 num_taxa = as.integer(cluster_data$V3)
 min_per_taxon = as.integer(cluster_data$V4)
+med_per_taxon = as.integer(cluster_data$V5)
 max_per_taxon = as.integer(cluster_data$V6)
 
 
@@ -50,25 +59,42 @@ lines(taxacounts$V2, taxacounts$V3 , lwd=5, col="#fc4e2a99" )
 legend( "topright", legend=c("N sequences", "N taxa"), 
         col=c("#016c59","#fc4e2a"), lwd=8, cex=1.3 )
 # lower plot
-species_count = nrow(count_by_sp)
+species_count = nrow(genes_in_clusters_by_sp)
 bar_las = ifelse( species_count < 35, 3, 0)
 if (species_count < 35){
-  barplot_names = count_by_sp$V2
+  barplot_names = genes_in_clusters_by_sp$V2
   par(mar=c(8,4.5,2.5,1))
 } else {
   barplot_names = NULL
   par(mar=c(3,4.5,2.5,1))
 }
-barplot( as.integer(count_by_sp$V3) , ylab="Number of genes in clusters", 
-         main=paste("Total counts of genes in orthogroups for",species_count,"species"),
-         col="#9ecae1", cex.axis=1.4, cex.lab=1.4 , names.arg=barplot_names, las=bar_las)
 
+if ( nrow(total_prots_by_sp)==nrow(genes_in_clusters_by_sp) ) {
+  matrix_for_bars = t(as.matrix(data.frame( hits_w_clusters , hits_no_clusters , prots_no_hits )))
+  barplot( matrix_for_bars , ylab="Number of genes in clusters", 
+           main=paste("Total counts of prots, those with hits, those in orthogroups for",species_count,"species"),
+           col=c("#9ecae1","#8c6bb1","#7f2704"), cex.axis=1.4, cex.lab=1.4 , names.arg=barplot_names, las=bar_las)
+} else {
+  barplot( as.integer(genes_in_clusters_by_sp$V3) , ylab="Number of genes in clusters", 
+           main=paste("Total counts of genes in orthogroups for",species_count,"species"),
+           col="#9ecae1", cex.axis=1.4, cex.lab=1.4 , names.arg=barplot_names, las=bar_las)
+}
 # end page 1
 
 # page 2
 par(mar=c(4.5,4.5,2.5,1))
 is_avg_one = (num_sequences==num_taxa)
 # upper plot
+point_color_vec = ifelse(is_avg_one,"#0000b344","#ed627844")
+plot(num_sequences, num_taxa, xlab="Total sequences in cluster", ylab="Number of taxa in cluster",
+     main=paste("Total sequences and taxon counts for",nrow(cluster_data),"orthogroups"),
+     cex.axis=1.4, cex.lab=1.4, #xlim=c(0,30), ylim=c(0,12),
+     cex=2, col=point_color_vec, pch=16)
+abline(v=min(num_sequences), lwd=1, lty=2, col="#00000044" ) # limit of -z
+text( max(num_sequences)*0.08, max(num_taxa), ":", cex=1.3)
+text( max(num_sequences)*0.09, max(num_taxa), table(is_avg_one)[["TRUE"]], adj=0, col="#0000b3")
+text( max(num_sequences)*0.07, max(num_taxa), table(is_avg_one)[["FALSE"]], adj=1, col="#ed6278")
+
 # orthologs are blue, paralogs are orange
 point_color_vec = ifelse(is_avg_one,"#0000b344","#ec701444")
 average_seqs_per_sp = num_sequences/num_taxa
@@ -81,7 +107,7 @@ abline(a=0, b=1/min(num_taxa) , lwd=1, lty=2, col="#00000044" ) # limit of -s , 
 text( max(num_sequences)*0.08, max(average_seqs_per_sp), ":", cex=1.3)
 text( max(num_sequences)*0.09, max(average_seqs_per_sp), table(is_avg_one)[["TRUE"]], adj=0, col="#0000b3")
 text( max(num_sequences)*0.07, max(average_seqs_per_sp), table(is_avg_one)[["FALSE"]], adj=1, col="#ec7014")
-#text(1,max(num_sequences/num_taxa), "-s" )
+
 
 # lower plot
 # change color of paralogs to pink
@@ -95,6 +121,19 @@ abline(v=min(num_sequences), lwd=1, lty=2, col="#00000044" ) # vertical line lim
 text( max(num_sequences)*0.08, max(max_per_taxon), ":", cex=1.3)
 text( max(num_sequences)*0.09, max(max_per_taxon), table(is_avg_one)[["TRUE"]], adj=0, col="#0000b3")
 text( max(num_sequences)*0.07, max(max_per_taxon), table(is_avg_one)[["FALSE"]], adj=1, col="#dd3497")
+
+# change color of paralogs to orange
+median_vs_min = med_per_taxon - min_per_taxon
+max_vs_median = max_per_taxon - med_per_taxon
+point_color_vec = ifelse(is_avg_one,"#0000b344","#dd973444")
+plot( jitter(median_vs_min), jitter(max_vs_median), xlab="Median minus minimum", ylab="Maximum minus median",
+     main=paste("Relative differences of min-med and med-max for",nrow(cluster_data),"orthogroups"),
+     cex.axis=1.4, cex.lab=1.4, #xlim=c(0,30), ylim=c(0,12),
+     cex=2, col=point_color_vec, pch=16)
+text( max(median_vs_min)*0.08, max(max_vs_median), ":", cex=1.3)
+text( max(median_vs_min)*0.09, max(max_vs_median), table(is_avg_one)[["TRUE"]], adj=0, col="#0000b3")
+text( max(median_vs_min)*0.07, max(max_vs_median), table(is_avg_one)[["FALSE"]], adj=1, col="#dd9734")
+
 
 dev.off()
 
