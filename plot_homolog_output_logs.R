@@ -1,6 +1,6 @@
 # plot homolog output logs
 #
-# last modified 2022-02-28
+# last modified 2022-03-15
 #
 # based on output files from makehomologs.py
 # https://bitbucket.org/wrf/sequences/src/master/makehomologs.py
@@ -39,13 +39,17 @@ input_cluster_file = args[2]
 #input_cluster_file = "~/project/lactobacillus_genomics/fasta_clusters.lactobacillus_v3.tab"
 
 print(paste("Reading orthogroups from", input_cluster_file, ", writing to", outputfile))
-cluster_data = read.table(input_cluster_file, header=FALSE, sep="\t", stringsAsFactors = FALSE)
+# should autodetect if makehomologs.py used the -c option, making the header fasta_clusters.H.
+cf_skip = grepl("fasta_clusters.H.", input_cluster_file)
+# meaning skip the header line
+cluster_data = read.table(input_cluster_file, header=cf_skip, sep="\t", stringsAsFactors = FALSE )
 
-num_sequences = as.integer(cluster_data$V2)
-num_taxa = as.integer(cluster_data$V3)
-min_per_taxon = as.integer(cluster_data$V4)
-med_per_taxon = as.integer(cluster_data$V5)
-max_per_taxon = as.integer(cluster_data$V6)
+
+num_sequences = as.integer(cluster_data[,2])
+num_taxa = as.integer(cluster_data[,3])
+min_per_taxon = as.integer(cluster_data[,4])
+med_per_taxon = as.integer(cluster_data[,5])
+max_per_taxon = as.integer(cluster_data[,6])
 
 
 # get vector for 1-1 orthologs
