@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 #
 # guess_partitions.py  created 2018-01-13
+# python3 update  2022-04-26
 
-'''guess_partitions.py  last modified 2018-03-07
+'''guess_partitions.py  last modified 2022-04-26
   check a supermatrix and guess partitions based on changes of occupancy
 
 guess_partitions.py -a supermatrix.phy -f phylip-relaxed
@@ -47,16 +48,17 @@ def check_alignments(fullalignment, alignformat, gapset, minlength=5, peakthresh
 	gaphisto = defaultdict(int)
 	sitecov = {} # key is site number, value is coverage
 
-	if fullalignment.rsplit('.',1)[1]=="gz": # autodetect gzip format
+	if fullalignment.rsplit('.',1)[-1]=="gz": # autodetect gzip format
 		opentype = gzip.open
-		print >> sys.stderr, "# reading alignment {} as gzipped".format(fullalignment), time.asctime()
+		sys.stderr.write("# reading alignment {} as gzipped  {}\n".format(fullalignment, time.asctime() ) )
 	else: # otherwise assume normal open
 		opentype = open
-		print >> sys.stderr, "# reading alignment {}".format(fullalignment), time.asctime()
+		sys.stderr.write("# reading alignment {}  {}\n".format(fullalignment, time.asctime() ) )
+
 	alignedseqs = AlignIO.read(opentype(fullalignment), alignformat)
 	numtaxa = len(alignedseqs)
 	allength = alignedseqs.get_alignment_length()
-	print >> sys.stderr, "# Alignment contains {} taxa for {} sites, including gaps".format( numtaxa, allength )
+	sys.stderr.write( "# Alignment contains {} taxa for {} sites, including gaps\n".format( numtaxa, allength ) )
 
 	switchbysite = {} # key is site number, values is number of switches
 	peakcount = 0
@@ -76,12 +78,12 @@ def check_alignments(fullalignment, alignformat, gapset, minlength=5, peakthresh
 			if partlength < minlength: # if shorter than 5, skip and merge with next
 				continue
 			peakcount += 1
-			print >> sys.stdout, "{}:{}\t{}\t{}".format(lastpos, i+1, partlength, changecount)
+			sys.stdout.write("{}:{}\t{}\t{}\n".format(lastpos, i+1, partlength, changecount) )
 			lastpos = i+2 # offset by two, one for python index, one for next site
 	else: # print last partition
 		partlength = i+1-lastpos
-		print >> sys.stdout, "{}:{}\t{}\t{}".format(lastpos, i+1, partlength, changecount)
-	print >> sys.stderr, "# Found {} peaks, max change count was {}".format( peakcount, max(switchbysite.values()) )
+		sys.stdout.write("{}:{}\t{}\t{}".format(lastpos, i+1, partlength, changecount) )
+	sys.stderr.write( "# Found {} peaks, max change count was {}\n".format( peakcount, max(switchbysite.values()) ) )
 
 def main(argv, wayout):
 	if not len(argv):

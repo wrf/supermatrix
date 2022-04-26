@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 #
 # filter_supermatrix.py created 2017-09-24
+# python3 update  2022-04-26
 
-'''filter_supermatrix.py  last modified 2018-02-27
+'''filter_supermatrix.py  last modified 2022-04-26
+    filter a supermatrix based on a list of partitions, by coverage
 
 filter_supermatrix.py -a matrix.phy -p partitions.txt -o filtered_matrix.phy
 
@@ -40,13 +42,13 @@ def get_partitions(partitionfile):
 			for block in blocks:
 				alignindex = tuple( int(i) for i in block.split(":") ) # split '1:136' into ( 1,136 )
 				partitions.append(alignindex)
-	print >> sys.stderr, "# read {} partitions from {}".format(len(partitions), partitionfile), time.asctime()
+	print( "# read {} partitions from {}  {}".format(len(partitions), partitionfile, time.asctime() ), file=sys.stderr )
 	return partitions
 
 def parts_to_genes(pairstatsfile):
 	'''read tabular pair-wise gene stats, return a dict where key is partition and value is gene'''
 	part_to_gene = {}
-	print >> sys.stderr, "# reading partitions and gene names from {}".format(pairstatsfile), time.asctime()
+	print( "# reading partitions and gene names from {}  {}".format(pairstatsfile, time.asctime() ), file=sys.stderr )
 	for line in open(pairstatsfile,'r'):
 		line = line.strip()
 		if line:
@@ -56,27 +58,27 @@ def parts_to_genes(pairstatsfile):
 			gene = lsplits[1].split("|")[-1]
 			partition = lsplits[0].split("_")[-1]
 			part_to_gene[partition] = gene
-	print >> sys.stderr, "# found {} gene names".format(len(part_to_gene)), time.asctime()
+	print( "# found {} gene names  {}".format(len(part_to_gene), time.asctime() ), file=sys.stderr )
 	return part_to_gene
 
 def check_alignments(fullalignment, alignformat, partitions, COVTHRESHOLD, genenamedict):
 	'''read large alignment, return a new alignment where low-coverage partitions are removed'''
 
-	if fullalignment.rsplit('.',1)[1]=="gz": # autodetect gzip format
+	if fullalignment.rsplit('.',1)[-1]=="gz": # autodetect gzip format
 		opentype = gzip.open
-		print >> sys.stderr, "# reading alignment {} as gzipped".format(fullalignment), time.asctime()
+		sys.stderr.write("# reading alignment {} as gzipped  {}\n".format(fullalignment, time.asctime() ) )
 	else: # otherwise assume normal open
 		opentype = open
-		print >> sys.stderr, "# reading alignment {}".format(fullalignment), time.asctime()
+		sys.stderr.write("# reading alignment {}  {}\n".format(fullalignment, time.asctime() ) )
 
 	alignedseqs = AlignIO.read(opentype(fullalignment), alignformat)
 	num_species = len(alignedseqs)
 	newalign = alignedseqs[:,0:0] # start with blank alignment
 	newpartitions = []
-	print >> sys.stderr, "# alignment has {} taxa with {} positions".format(num_species, alignedseqs.get_alignment_length()), time.asctime()
+	print( "# alignment has {} taxa with {} positions  {}".format(num_species, alignedseqs.get_alignment_length(), time.asctime() ), file=sys.stderr )
 
 	newnamedict = {} # key is new partition, value is gene name from old partition
-	print >> sys.stderr, "# filtering partitions", time.asctime()
+	print( "# filtering partitions  {}".format( time.asctime() ), file=sys.stderr )
 	for part in partitions:
 		alignpart = alignedseqs[:, part[0]-1:part[1] ] # alignment of each partition only
 		completecounter = {0:0, 1:0, 2:0}
@@ -98,8 +100,8 @@ def check_alignments(fullalignment, alignformat, partitions, COVTHRESHOLD, genen
 			if genenamedict: # transfer name to new indices
 				newnamedict[newindices] = genenamedict.get("{}-{}".format(*part),None)
 		else:
-			print >> sys.stderr, "# COVERAGE OF PARTITION {} IS {:.2f}, REMOVING".format( part, fullcoverage )
-	print >> sys.stderr, "# final alignment has {} partitions with {} sites".format( len(newpartitions), newalign.get_alignment_length() ), time.asctime()
+			print( "COVERAGE OF PARTITION {} IS {:.2f}, REMOVING".format( part, fullcoverage ), file=sys.stderr )
+	print( "# final alignment has {} partitions with {} sites  {}".format( len(newpartitions), newalign.get_alignment_length() , time.asctime() ), file=sys.stderr )
 	return newalign, newpartitions, newnamedict
 
 def main(argv, wayout):
@@ -118,13 +120,13 @@ def main(argv, wayout):
 	genenames = parts_to_genes(args.pair_stats) if args.pair_stats else None
 	filteredalignment, partitionlist, genenames = check_alignments(args.alignment, args.format, partitions, args.completeness, genenames)
 	AlignIO.write(filteredalignment, args.output, args.format)
-	print >> sys.stderr, "# Supermatrix written to {}".format(args.output), time.asctime()
+	print( "# Supermatrix written to {}  {}".format(args.output, time.asctime() ), file=sys.stderr )
 	with open("{}.partition.txt".format(args.output),'w') as pf:
 		if args.pair_stats:
 			for part in partitionlist:
-				print >> pf, "model, {} = {}-{}".format( genenames[part], *part.split(":") )
+				print( "model, {} = {}-{}".format( genenames[part], *part.split(":") ), file=pf )
 		else:
-			print >> pf, ",".join(partitionlist)
+			print( ",".join(partitionlist), file=pf )
 
 if __name__ == "__main__":
 	main(sys.argv[1:], sys.stdout)
