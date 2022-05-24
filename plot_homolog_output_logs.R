@@ -1,6 +1,6 @@
 # plot homolog output logs
 #
-# last modified 2022-03-15
+# last modified 2022-05-23
 #
 # based on output files from makehomologs.py
 # https://bitbucket.org/wrf/sequences/src/master/makehomologs.py
@@ -91,6 +91,8 @@ if ( nrow(total_prots_by_sp)==nrow(genes_in_clusters_by_sp) ) {
            main=paste("Total counts of prots, those with hits, those in orthogroups for",species_count,"species"),
            col=c("#0000b3", "#9ecae1","#8c6bb1","#7f2704"), border = bordcolor,
            cex.axis=1.4, cex.lab=1.4 , names.arg=barplot_names, las=bar_las)
+  legend(x="bottom", legend=c("Single-copy", "Multi-copy", "Not clustered", "No blast"),
+         col=c("#0000b3", "#9ecae1","#8c6bb1","#7f2704"), pch=15, pt.cex=2, horiz=TRUE, xpd = TRUE )
 } else {
   barplot( as.integer(genes_in_clusters_by_sp$V3) , ylab="Number of genes in clusters", 
            main=paste("Total counts of genes in orthogroups for",species_count,"species"),
