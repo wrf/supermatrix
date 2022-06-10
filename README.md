@@ -106,6 +106,8 @@ Again, making use of [check_supermatrix_alignments.py](https://github.com/wrf/su
 
 The penalty score is proportional to the frequency of the "breaking" amino acid, with a maximum of 1. Meaning, out of 100 taxa, if 99 of them have `G` at some site, and one species has `N`, then the penalty is either `1/freq-G`, which is `1/99`, or `1/freq-N`, which is `1/1`. This means that a totally unique AA is high-scoring, but that even a frequency of 2 or 3 substantially reduces the score to `0.5` or `0.333`.
 
+![constant_breaker_scoring_v2.png](https://github.com/wrf/supermatrix/blob/master/misc_analyses/constant_breaker_scoring_v2.png)
+
 Below shows an example plot using an expanded alignment from the Philippe 2009 matrix. Dark purple spots indicate a gene with a long constant-breaking stretch. The color depends on the length of the longest run for that gene, typically only 1 per gene if any. Unsurprisingly, the human genome, being well-annotated and assembled, appears to have 0 of these errors.
 
 ![metazoa_v11_select_const_break_matrix.png](https://github.com/wrf/supermatrix/blob/master/misc_analyses/metazoa_v11_select_const_break_matrix.png)
