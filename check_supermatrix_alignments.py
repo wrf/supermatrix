@@ -2,7 +2,7 @@
 #
 # check_supermatrix_alignments.py created 2017-03-13
 
-'''check_supermatrix_alignments.py v1.4 2022-01-13
+'''check_supermatrix_alignments.py v1.4 2022-07-07
 tool to quickly check for abnormal sequences in fasta alignments
 
 check_supermatrix_alignments.py -a matrix.phy -p partitions.txt
@@ -52,10 +52,16 @@ def get_partitions(partitionfile):
 	for line in open(partitionfile,'r'):
 		line = line.strip()
 		if line:
-			blocks = line.split(",") # split "1:136,137:301,..." into ['1:136', '137:301',...]
-			for block in blocks:
-				alignindex = tuple( int(i) for i in block.split(":") ) # split '1:136' into ( 1,136 )
+			if line.count("=") > 0: # for RAxML type format
+				# WAG, homologs_134_11213 = 1-221
+				block = line.split("=",1)[-1].strip() # should be "1-221"
+				alignindex = tuple( int(i) for i in block.split("-") ) # split "1-221" into ( 1,221 )
 				partitions.append(alignindex)
+			else: # for short format
+				blocks = line.split(",") # split "1:136,137:301,..." into ['1:136', '137:301',...]
+				for block in blocks:
+					alignindex = tuple( int(i) for i in block.split(":") ) # split '1:136' into ( 1,136 )
+					partitions.append(alignindex)
 	print( "# read {} partitions from {}  {}".format(len(partitions), partitionfile, time.asctime() ), file=sys.stderr )
 	return partitions
 
