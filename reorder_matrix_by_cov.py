@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 #
 # reorder_matrix_by_cov.py created 2017-10-24
+# v1.1 python3 update 2023-01-19
 
-'''reorder_matrix_by_cov.py  last modified 2018-05-01
+'''reorder_matrix_by_cov.py  last modified 2023-01-19
 
 reorder_matrix_by_cov.py -a matrix.phy -p partitions.txt -o reordered_matrix.phy
 
@@ -37,13 +38,13 @@ def get_partitions(partitionfile):
 			for block in blocks:
 				alignindex = tuple( int(i) for i in block.split(":") ) # split '1:136' into ( 1,136 )
 				partitions.append(alignindex)
-	print >> sys.stderr, "# read {} partitions from {}".format(len(partitions), partitionfile), time.asctime()
+	sys.stderr.write( "# read {} partitions from {}  {}\n".format(len(partitions), partitionfile, time.asctime() ) )
 	return partitions
 
 def parts_to_genes(pairstatsfile):
 	'''read tabular pair-wise gene stats, return a dict where key is partition and value is gene'''
 	part_to_gene = {}
-	print >> sys.stderr, "# reading partitions and gene names from {}".format(pairstatsfile), time.asctime()
+	sys.stderr.write( "# reading partitions and gene names from {}  {}\n".format(pairstatsfile, time.asctime() ) )
 	for line in open(pairstatsfile,'r'):
 		line = line.strip()
 		if line:
@@ -53,28 +54,28 @@ def parts_to_genes(pairstatsfile):
 			gene = lsplits[1].split("|")[-1]
 			partition = lsplits[0].split("_")[-1]
 			part_to_gene[partition] = gene
-	print >> sys.stderr, "# found {} gene names".format(len(part_to_gene)), time.asctime()
+	sys.stderr.write( "# found {} gene names".format( len(part_to_gene), time.asctime() ) )
 	return part_to_gene
 
 def reorder_alignments(fullalignment, alignformat, partitions, maxsites, genenamedict, reverse_sort):
 	'''read alignment, and return a new alignment where partitions are reordered from highest coverage to lowest'''
 	if fullalignment.rsplit('.',1)[1]=="gz": # autodetect gzip format
 		opentype = gzip.open
-		print >> sys.stderr, "# reading alignment {} as gzipped".format(fullalignment), time.asctime()
+		sys.stderr.write( "# reading alignment {} as gzipped  {}\n".format(fullalignment, time.asctime() ) )
 	else: # otherwise assume normal open
 		opentype = open
-		print >> sys.stderr, "# reading alignment {}".format(fullalignment), time.asctime()
+		sys.stderr.write( "# reading alignment {}  {}\n".format(fullalignment, time.asctime() ) )
 
 	alignedseqs = AlignIO.read(opentype(fullalignment), alignformat)
 	num_species = len(alignedseqs)
 	newalign = alignedseqs[:,0:0] # start with blank alignment
 	newpartitions = []
-	print >> sys.stderr, "# alignment has {} taxa with {} positions".format(num_species, alignedseqs.get_alignment_length()), time.asctime()
+	sys.stderr.write( "# alignment has {} taxa with {} positions  {}\n".format(num_species, alignedseqs.get_alignment_length(), time.asctime() ) )
 
 	newnamedict = {} # key is new partition, value is gene name from old partition
 	alignparts = {} # key is old partition, value is alignment part
 	aligncompleteness = {} # key is old partition, value is coverage
-	print >> sys.stderr, "# scoring partitions", time.asctime()
+	sys.stderr.write( "# scoring partitions  {}\n".format( time.asctime() ) )
 	for part in partitions:
 		alignpart = alignedseqs[:, part[0]-1:part[1] ] # alignment of each partition only
 		gaplist = []
@@ -94,16 +95,16 @@ def reorder_alignments(fullalignment, alignformat, partitions, maxsites, genenam
 			#completecounter[occupancyscore] += 1
 		#covscore = sum( k*v for k,v in completecounter.items() )
 		covscore = sum( gaplist )
-		#print >> sys.stderr, part, covscore
+		#sys.stderr.write( part, covscore
 		aligncompleteness[part] = covscore
 		alignparts[part] = alignpart
 
 	if reverse_sort:
-		print >> sys.stderr, "# sorting partitions, by highest coverage", time.asctime()
+		sys.stderr.write( "# sorting partitions, by highest coverage  {}\n".format( time.asctime() ) )
 	else:
-		print >> sys.stderr, "# sorting partitions, taking lowest coverage", time.asctime()
+		sys.stderr.write( "# sorting partitions, taking lowest coverage  {}\n".format( time.asctime() ) )
 	for part, score in sorted(aligncompleteness.items(), key=lambda x: x[1], reverse=reverse_sort):
-		#print >> sys.stderr, part, score
+		#sys.stderr.write( part, score
 		newindices = "{}:{}".format( newalign.get_alignment_length()+1, newalign.get_alignment_length()+part[1]-part[0]+1 )
 		newpartitions.append( newindices )
 		newalign += alignparts[part]
@@ -111,7 +112,7 @@ def reorder_alignments(fullalignment, alignformat, partitions, maxsites, genenam
 			newnamedict[newindices] = genenamedict.get("{}-{}".format(*part),None)
 		if maxsites is not None and newalign.get_alignment_length() >= maxsites:
 			break
-	print >> sys.stderr, "# alignment has {} partitions with {} sites".format( len(newpartitions), newalign.get_alignment_length() ), time.asctime()
+	sys.stderr.write( "# alignment has {} partitions with {} sites  {}\n".format( len(newpartitions), newalign.get_alignment_length() , time.asctime() ) )
 	return newalign, newpartitions, newnamedict
 
 def main(argv, wayout):
@@ -131,13 +132,13 @@ def main(argv, wayout):
 	genenames = parts_to_genes(args.pair_stats) if args.pair_stats else None
 	sortedalignment, partitionlist, genenames = reorder_alignments(args.alignment, args.format, partitions, args.max_sites, genenames, args.invert)
 	AlignIO.write(sortedalignment, args.output, args.format)
-	print >> sys.stderr, "# Supermatrix written to {}".format(args.output), time.asctime()
+	sys.stderr.write( "# Supermatrix written to {}  {}\n".format(args.output, time.asctime() ) )
 	with open("{}.partition.txt".format(args.output),'w') as pf:
 		if args.pair_stats:
 			for part in partitionlist:
-				print >> pf, "model, {} = {}-{}".format( genenames[part], *part.split(":") )
+				print("model, {} = {}-{}".format( genenames[part], *part.split(":") ), file= pf )
 		else:
-			print >> pf, ",".join(partitionlist)
+			print( ",".join(partitionlist), file= pf )
 
 if __name__ == "__main__":
 	main(sys.argv[1:], sys.stdout)
