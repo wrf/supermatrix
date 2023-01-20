@@ -2,9 +2,10 @@
 #
 # filter_supermatrix.py created 2017-09-24
 # python3 update  2022-04-26
+# add option for key taxa 2023-01-20
 
-'''filter_supermatrix.py  last modified 2022-04-26
-    filter a supermatrix based on a list of partitions, by coverage
+'''filter_supermatrix.py  last modified 2023-01-20
+    filter a supermatrix by coverage based on a list of partitions
 
 filter_supermatrix.py -a matrix.phy -p partitions.txt -o filtered_matrix.phy
 
@@ -61,7 +62,7 @@ def parts_to_genes(pairstatsfile):
 	print( "# found {} gene names  {}".format(len(part_to_gene), time.asctime() ), file=sys.stderr )
 	return part_to_gene
 
-def check_alignments(fullalignment, alignformat, partitions, COVTHRESHOLD, genenamedict):
+def check_alignments(fullalignment, alignformat, partitions, COVTHRESHOLD, genenamedict, key_species_list):
 	'''read large alignment, return a new alignment where low-coverage partitions are removed'''
 
 	if fullalignment.rsplit('.',1)[-1]=="gz": # autodetect gzip format
@@ -82,6 +83,7 @@ def check_alignments(fullalignment, alignformat, partitions, COVTHRESHOLD, genen
 	for part in partitions:
 		alignpart = alignedseqs[:, part[0]-1:part[1] ] # alignment of each partition only
 		completecounter = {0:0, 1:0, 2:0}
+		is_species_present = {} # key is species, value is boolean
 		for i,seqrec in enumerate(alignpart):
 			species = seqrec.id
 			seqlen = len(seqrec.seq)
@@ -92,8 +94,19 @@ def check_alignments(fullalignment, alignformat, partitions, COVTHRESHOLD, genen
 			elif lettercounts["-"] >= seqlen * 0.5: # partial means half or more of sequence is gaps
 				occupancyscore = 1 # set to 1 if partial
 			completecounter[occupancyscore] += 1
+			if species in key_species_list:
+				if occupancyscore > 0:
+					is_species_present[species] = 1
+				else:
+					is_species_present[species] = 0
+
 		fullcoverage = 1.0*completecounter[2]/num_species
-		if fullcoverage >= COVTHRESHOLD:
+		if key_species_list is None:
+			key_species_included = 1
+		else:
+			key_species_included = sum( is_species_present.values ) * 1.0 / len(key_species_list)
+
+		if fullcoverage >= COVTHRESHOLD and key_species_included >= COVTHRESHOLD:
 			newindices = "{}:{}".format( newalign.get_alignment_length()+1, newalign.get_alignment_length()+part[1]-part[0]+1 )
 			newpartitions.append( newindices )
 			newalign += alignpart
@@ -113,12 +126,13 @@ def main(argv, wayout):
 	parser.add_argument('-f','--format', default="fasta", help="alignment format [fasta]")
 	parser.add_argument('-o','--output', help="output name for new alignment", required=True)
 	parser.add_argument('-p','--partition', help="partition file for splitting large alignments")
+	parser.add_argument('-r','--required-species', nargs='*', help="list of species that must end up in the alignments")
 	parser.add_argument('--pair-stats', help="pair stats file for gene names, to use with RAxML style partition format")
 	args = parser.parse_args(argv)
 
 	partitions = get_partitions(args.partition)
 	genenames = parts_to_genes(args.pair_stats) if args.pair_stats else None
-	filteredalignment, partitionlist, genenames = check_alignments(args.alignment, args.format, partitions, args.completeness, genenames)
+	filteredalignment, partitionlist, genenames = check_alignments(args.alignment, args.format, partitions, args.completeness, genenames, args.required_species )
 	AlignIO.write(filteredalignment, args.output, args.format)
 	print( "# Supermatrix written to {}  {}".format(args.output, time.asctime() ), file=sys.stderr )
 	with open("{}.partition.txt".format(args.output),'w') as pf:
