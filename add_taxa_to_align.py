@@ -1,8 +1,10 @@
 #! /usr/bin/env python
 # add_taxa_to_align.py v1.0 created 2016-12-08
+# v1.5 2018-08-27
+# v1.6 2023-01-20 python3 update and some changes to log output
 
 '''
-add_taxa_to_align.py v1.5 2018-08-27
+add_taxa_to_align.py v1.6 2023-01-20
     add new taxa to an existing untrimmed alignment
     requires Bio Python library
     get hmmbuild and hmmscan (from hmmer package at http://hmmer.org/)
@@ -68,7 +70,7 @@ def get_partitions(partitionfile, errorlog):
 			for block in blocks:
 				alignindex = tuple( int(i) for i in block.split(":") ) # split '1:136' into ( 1,136 )
 				partitions.append(alignindex)
-	print >> errorlog, "# read {} partitions from {}".format(len(partitions), partitionfile), time.asctime()
+	print( "# read {} partitions from {}  {}".format(len(partitions), partitionfile, time.asctime() ), file=errorlog )
 	return partitions
 
 def tabular_taxa_to_lists(tabulartaxafile):
@@ -94,7 +96,7 @@ def check_redundant_names(fullalignment, alignformat, new_taxa):
 	for seqrec in alignedseqs:
 		taxa_counts[seqrec.id] += 1
 	doublecounts = []
-	for taxon, counts in taxa_counts.iteritems():
+	for taxon, counts in taxa_counts.items():
 		if counts > 1:
 			doublecounts.append(taxon)
 	return doublecounts
@@ -109,7 +111,7 @@ def make_alignments(fullalignment, alignformat, partitions, partitiondir, errorl
 		with open(alignpartname, 'w') as ao:
 			AlignIO.write(alignpart, ao, "fasta")
 		splitalignments.append(alignpartname)
-	print >> errorlog, "# split alignment by partitions", time.asctime()
+	print( "# split alignment by partitions  {}".format( time.asctime() ), file=errorlog )
 	return splitalignments
 
 def run_hmmbuild(HMMBUILD, alignmentfile, errorlog, fragmented=False):
@@ -120,9 +122,9 @@ def run_hmmbuild(HMMBUILD, alignmentfile, errorlog, fragmented=False):
 		hmmbuild_args = [HMMBUILD, "--pextend", "0.8", hmm_output, alignmentfile]
 	else:
 		hmmbuild_args = [HMMBUILD, hmm_output, alignmentfile]
-	print >> errorlog, "#TIME {}\n{}".format(time.asctime(), " ".join(hmmbuild_args) )
+	print( "###TIME {}\n{}".format(time.asctime(), " ".join(hmmbuild_args) ), file=errorlog )
 	subprocess.call(hmmbuild_args, stdout=errorlog)
-	print >> errorlog, "# hmmbuild completed", time.asctime()
+	print( "# hmmbuild completed  {}".format( time.asctime() ), file=errorlog )
 	if os.path.isfile(hmm_output):
 		return hmm_output
 	else:
@@ -132,14 +134,14 @@ def run_hmmsearch(HMMSEARCH, hmmprofile, fastafile, threadcount, hmmlog, hmmdir,
 	'''search fasta format proteins with HMM profile and return formatted-table filename'''
 	hmmtbl_output = os.path.join(hmmdir, os.path.basename("{}_{}.tab".format(os.path.splitext(fastafile)[0], os.path.splitext(os.path.basename(hmmprofile))[0] ) ) )
 	hmmsearch_args = [HMMSEARCH,"--cpu", str(threadcount), "--domE", "0.0001", "--domtblout", hmmtbl_output, hmmprofile, fastafile]
-	print >> errorlog, "#TIME {}\n{}".format(time.asctime(), " ".join(hmmsearch_args) )
+	print( "###TIME {}\n{}".format(time.asctime(), " ".join(hmmsearch_args) ), file=errorlog )
 	if hmmlog:
 		with open(hmmlog) as hmmstdout:
 			subprocess.call(hmmsearch_args, stdout=hmmstdout)
 	else:
 		DEVNULL = open(os.devnull, 'w')
 		subprocess.call(hmmsearch_args, stdout=DEVNULL)
-	print >> errorlog, "# hmmsearch completed", time.asctime()
+	print( "# hmmsearch completed  {}".format( time.asctime() ), file=errorlog )
 	if os.path.isfile(hmmtbl_output):
 		return hmmtbl_output
 	else:
@@ -156,20 +158,18 @@ def hmmtable_to_seqids(hmmtable, evaluecutoff, bitlencutoff, seqdict, verbose ):
 	lastspan = 1 # span of HMM
 	lastbits = 0
 	hitcounter = 0
-	for line in open(hmmtable, 'r').readlines():
+	for line in open(hmmtable, 'r'):
 		line = line.strip()
 		if not line or line[0]=="#": # skip comment lines
 			continue # also catch for empty line, which would cause IndexError
 		lsplits = line.split(None,22)
 		hitcounter += 1
 		targetname = lsplits[0]
-	#	evalue = float(lsplits[4])
-	#	bitscore = float(lsplits[5])
+
 		querylen = int(lsplits[5])
 		evalue = float(lsplits[11])
 		bitscore = float(lsplits[13])
 		alignlength = int(lsplits[18]) - int(lsplits[17]) + 1
-	#	alignlength = len(seqdict[targetname].seq)
 		hmmspan = int(lsplits[16]) - int(lsplits[15]) + 1
 		bitsperlen = bitscore/alignlength
 		if bitscore > maxscore:
@@ -178,33 +178,33 @@ def hmmtable_to_seqids(hmmtable, evaluecutoff, bitlencutoff, seqdict, verbose ):
 			maxbpl = bitsperlen
 		if bitsperlen + 0.1 < maxbpl:
 			if verbose:
-				print >> sys.stderr, "# REMOVING {}: BpL {} + 0.1 < MAX {}".format(targetname, bitsperlen, maxbpl )
+				print( "# REMOVING {}: BpL {} + 0.1 < MAX {}".format(targetname, bitsperlen, maxbpl ), file=sys.stderr )
 			continue
 		if evalue > evaluecutoff and bitsperlen < bitlencutoff:
 			if verbose:
-				print >> sys.stderr, "# REMOVING {}: EVALUE {} > {} AND BpL {} < {}".format( targetname, evalue, evaluecutoff, bitsperlen, bitlencutoff )
+				print( "# REMOVING {}: EVALUE {} > {} AND BpL {} < {}".format( targetname, evalue, evaluecutoff, bitsperlen, bitlencutoff ), file=sys.stderr )
 			continue
 		if bitscore < maxscore*0.5: # discard any seqs that score less than half max
 			if verbose:
-				print >> sys.stderr, "# REMOVING {}: BITS {} < {} * 0.5".format( targetname, bitscore, maxscore )
+				print( "# REMOVING {}: BITS {} < {} * 0.5".format( targetname, bitscore, maxscore ), file=sys.stderr )
 			continue
 		if evalue==0: # change values of 0 to 1e-300 for comparisons
 			evalue = 1e-300
 		# should better resolve paralogs
 		if len(seqids_to_keep) >= 1 and evalue > lastevalue * 1e50: # if second best seq is 1e50 worse, skip
 			if verbose:
-				print >> sys.stderr, "# REMOVING {}: EVALUE {} > LAST {} * 1e50".format( targetname, evalue, lastevalue )
+				print( "# REMOVING {}: EVALUE {} > LAST {} * 1e50".format( targetname, evalue, lastevalue ), file=sys.stderr )
 			continue
 		# should correctly choose a longer splice variant if seqs are this close in evalue and bitscore
 		if len(seqids_to_keep) >= 1 and hmmspan < lastspan and bitscore < lastbits - 100:
 			if verbose:
-				print >> sys.stderr, "# REMOVING {}: SPAN {} < LAST {} AND BITS {} < LAST {} - 100".format( targetname, hmmspan, lastspan, bitscore, lastbits )
+				print( "# REMOVING {}: SPAN {} < LAST {} AND BITS {} < LAST {} - 100".format( targetname, hmmspan, lastspan, bitscore, lastbits ), file=sys.stderr )
 			continue
 		lastevalue = evalue
 		lastspan = hmmspan
 		lastbits = bitscore
 		if verbose:
-			print >> sys.stderr, "# CANDIDATE {}: EVALUE {}, BITS {}, BpL {}".format( targetname, evalue, bitscore, bitsperlen )
+			print( "# CANDIDATE {}: EVALUE {}, BITS {}, BpL {}".format( targetname, evalue, bitscore, bitsperlen ), file=sys.stderr )
 		if targetname in seqids_to_keep: # since multiple domains are allowed, keep highest scoring one
 			if seqids_to_keep.get(targetname,0) < bitsperlen:
 				seqids_to_keep[targetname] = bitsperlen
@@ -213,19 +213,19 @@ def hmmtable_to_seqids(hmmtable, evaluecutoff, bitlencutoff, seqdict, verbose ):
 	# sort IDs by highest bits-per-length
 	sorted_ids = [ k for k,v in sorted(seqids_to_keep.items(), key=lambda x: x[1], reverse=True ) ]
 	if seqids_to_keep: # meaning if any hits
-		print >> sys.stderr, "# retaining {}/{} seqs from {}, highest bits/len is {:.4f} for {}".format( len(seqids_to_keep) , hitcounter, os.path.basename(hmmtable), maxbpl, sorted_ids[0] )
+		print( "# retaining {}/{} seqs from {}, highest bits/len is {:.4f} for {}".format( len(seqids_to_keep) , hitcounter, os.path.basename(hmmtable), maxbpl, sorted_ids[0] ), file=sys.stderr )
 		if maxbpl != seqids_to_keep[sorted_ids[0]]: # in case best reasonable seq is not the max
-			print >> sys.stderr, "# WARNING: MAX {} DOES NOT MATCH TOP SEQ {} WITH {}".format( maxbpl, sorted_ids[0] , seqids_to_keep[sorted_ids[0]] )
+			print( "# WARNING: MAX {} DOES NOT MATCH TOP SEQ {} WITH {}".format( maxbpl, sorted_ids[0] , seqids_to_keep[sorted_ids[0]] ), file=sys.stderr )
 	else: # meaning no hits
-		print >> sys.stderr, "# keeping NONE of {} hits, highest score from {} was {:.4f} W/ cutoff {:.4f}".format( hitcounter, os.path.basename(hmmtable), maxbpl, bitlencutoff )
+		print( "# keeping NONE of {} hits, highest score from {} was {:.4f} W/ cutoff {:.4f}".format( hitcounter, os.path.basename(hmmtable), maxbpl, bitlencutoff ), file=sys.stderr )
 	return sorted_ids
 
 def make_seq_length_dict(sequencefile):
-	print >> sys.stderr, "# Parsing target sequences from {}".format(sequencefile), time.asctime()
+	print( "# Parsing target sequences from {}  {}".format( os.path.basename(sequencefile), time.asctime() ) , file=sys.stderr )
 	lengthdict = {}
 	for seqrec in SeqIO.parse(sequencefile,'fasta'):
 		lengthdict[seqrec.id] = len(seqrec.seq)
-	print >> sys.stderr, "# Found {} sequences".format(len(lengthdict)), time.asctime()
+	print( "# Found {} sequences for self-hmm  {}".format( len(lengthdict), time.asctime() ), file=sys.stderr )
 	return lengthdict
 
 def get_evalue_from_hmm(HMMSEARCH, hmmprofile, alignment, threadcount, hmmevaluedir, errorlog, evallowance, bplallowance):
@@ -245,16 +245,16 @@ def get_evalue_from_hmm(HMMSEARCH, hmmprofile, alignment, threadcount, hmmevalue
 	# regular table output is used here, as all seqs are assumed to be correct
 	hmmtbl_output = os.path.join( hmmevaluedir, os.path.basename( "{}_self_hmm.tab".format( os.path.splitext(alignment)[0] ) ) )
 	hmmsearch_args = [HMMSEARCH,"--cpu", str(threadcount), "-E", "0.0001", "--tblout", hmmtbl_output, hmmprofile, fasta_unaligned]
-	print >> errorlog, "{}\n{}".format(time.asctime(), " ".join(hmmsearch_args) )
+	print( "###TIME {}\n{}".format(time.asctime(), " ".join(hmmsearch_args) ), file=errorlog )
 	DEVNULL = open(os.devnull, 'w')
 	subprocess.call(hmmsearch_args, stdout=DEVNULL)
-	print >> errorlog, "# self-hmmsearch completed", time.asctime()
+	print( "# self-hmmsearch completed  {}".format( time.asctime() ), file=errorlog )
 
 	# PROCESS RESULTS
 	bitslenlist = [] # list of bits per length for long sequences using hmm results
 	if os.path.isfile(hmmtbl_output):
 		maxevalue = 0.0
-		for line in open(hmmtbl_output, 'r').readlines():
+		for line in open(hmmtbl_output, 'r'):
 			line = line.strip()
 			if not line or line[0]=="#": # skip comment lines
 				continue # also catch for empty line, which would cause IndexError
@@ -270,19 +270,20 @@ def get_evalue_from_hmm(HMMSEARCH, hmmprofile, alignment, threadcount, hmmevalue
 			maxevalue = 1e-300
 		else:
 			maxevalue = maxevalue * evallowance # correct by constant margin of error, should be 1e15
-		print >> errorlog, "# calculated e-value for {} as {:.3e}".format(alignment, maxevalue)
+		print( "# calculated e-value for {} as {:.3e}".format(alignment, maxevalue), file=errorlog )
 		bplcutoff = min(bitslenlist) - bplallowance # should be 0.1 by default
 		if bplcutoff < 0.9:
 			bplcutoff = 0.9
-			print >> errorlog, "# using minimum bits-per-length cutoff for {} of {:.2f}".format(alignment, bplcutoff), time.asctime()
+			print( "# using minimum bits-per-length cutoff for {} of {:.2f}".format(alignment, bplcutoff ), file=errorlog )
 		else:
-			print >> errorlog, "# calculated bits-per-length cutoff for {} as {:.3f}".format(alignment, bplcutoff), time.asctime()
+			print( "# calculated bits-per-length cutoff for {} as {:.3f}".format(alignment, bplcutoff), file=errorlog )
 		return maxevalue, bplcutoff
 	else:
 		raise OSError("Cannot find expected output file {}".format(hmmtbl_output) )
 
 def unalign_sequences(unalignedtaxa, alignment, notrim, calculatemedian, removeempty):
 	'''remove gaps from alignments, and possibly return median ungapped length'''
+	GAPCUTOFF = 0.75
 	sizelist = []
 	with open(unalignedtaxa,'w') as notaln:
 		for seqrec in SeqIO.parse(alignment,"fasta"):
@@ -291,8 +292,8 @@ def unalign_sequences(unalignedtaxa, alignment, notrim, calculatemedian, removee
 			seqrec.seq = degappedseq
 			if calculatemedian:
 				sizelist.append(len(degappedseq))
-			if removeempty and len(degappedseq) < 0.75*len(gappedseq):
-				print >> sys.stderr, "# PARTIAL SEQUENCE {} REMOVED FROM HMM EVALUE TEST {}".format(seqrec.id, os.path.basename(alignment) )
+			if removeempty and len(degappedseq) < GAPCUTOFF * len(gappedseq):
+				print( "# PARTIAL SEQUENCE {} REMOVED FROM HMM EVALUE TEST {}".format(seqrec.id, os.path.basename(alignment) ), file=sys.stderr )
 				continue
 			if notrim:
 				notaln.write( seqrec.format("fasta") )
@@ -311,7 +312,7 @@ def collect_sequences(unalignednewtaxa, alignment, hitlistolists, lengthcutoff, 
 		for i,hitlist in enumerate(hitlistolists):
 			writeout = 0
 			if not hitlist:
-				print >> sys.stderr, "# NO HITS FOR {} IN {}".format(speciesnames[i], os.path.basename(alignment) )
+				print( "# NO HITS FOR {} IN {}".format(speciesnames[i], os.path.basename(alignment) ), file=sys.stderr )
 				print >> notaln, ">{}".format(speciesnames[i])
 				continue
 			for seqrec in hitlist: # sublist, each item is a SeqRecord object
@@ -321,27 +322,27 @@ def collect_sequences(unalignednewtaxa, alignment, hitlistolists, lengthcutoff, 
 				if len(seqrec.seq) >= median*lengthcutoff: # remove short sequences
 					if keep_old_ids is False: # should be False by default
 						if seqrec.id==speciesnames[i]: # check if seq was already used, so dict entry was renamed
-							print >> sys.stderr, "WARNING: REDUNDANT SEQ {} FOR {}".format(seqrec.name, os.path.basename(alignment) )
+							print( "WARNING: REDUNDANT SEQ {} FOR {}".format(seqrec.name, os.path.basename(alignment) ), file=sys.stderr )
 						seqrec.id = str(speciesnames[i])
 						seqrec.description = ""
-					print >> sys.stderr, "# using seq {} for {}".format( old_id, speciesnames[i] )
+					print( "# using seq {} for {}".format( old_id, speciesnames[i] ), file=sys.stderr )
 					notaln.write( seqrec.format("fasta") )
 					writeout += 1
 				else: # meaning too short
-					print >> sys.stderr, "# SEQ {} TOO SHORT FOR {} IN {}".format(seqrec.name, speciesnames[i], os.path.basename(alignment) )
+					print( "# SEQ {} TOO SHORT FOR {} IN {}".format(seqrec.name, speciesnames[i], os.path.basename(alignment) ), file=sys.stderr )
 			if writeout==0: # all hits missed the cut or had no hits, give a dummy entry
 				print >> notaln, ">{}".format(speciesnames[i])
-				print >> sys.stderr, "# ALL HITS TOO SHORT FOR {} IN {}".format(speciesnames[i], os.path.basename(alignment) )
+				print( "# ALL HITS TOO SHORT FOR {} IN {}".format(speciesnames[i], os.path.basename(alignment) ), file=sys.stderr )
 	# no return
 
 def run_mafft(MAFFT, rawseqsfile, errorlog):
 	'''generate multiple sequence alignment from fasta and return MSA filename'''
 	aln_output = "{}.aln".format(os.path.splitext(rawseqsfile)[0] )
 	aligner_args = [MAFFT, "--maxiterate", "1000", "--localpair", "--quiet", rawseqsfile]
-	print >> errorlog, "#TIME {}\n{} > {}".format(time.asctime(), " ".join(aligner_args), aln_output )
+	print( "#TIME {}\n{} > {}".format(time.asctime(), " ".join(aligner_args), aln_output ), file=errorlog )
 	with open(aln_output, 'w') as msa:
 		subprocess.call(aligner_args, stdout=msa)
-	print >> errorlog, "# alignment of {} completed".format(aln_output), time.asctime()
+	print( "# alignment of {} completed  {}".format(aln_output, time.asctime() ), file=errorlog )
 	if os.path.isfile(aln_output):
 		return aln_output
 	else:
@@ -352,10 +353,10 @@ def run_mafft_addlong(MAFFT, oldalignment, rawseqsfile, errorlog):
 	aln_output = "{}.aln".format(os.path.splitext(rawseqsfile)[0] )
 #	aligner_args = [MAFFT, "--quiet", "--keeplength", "--auto", "--addlong", rawseqsfile, oldalignment]
 	aligner_args = [MAFFT, "--maxiterate", "1000", "--localpair", "--quiet", "--addlong", rawseqsfile, oldalignment]
-	print >> errorlog, "#TIME {}\n{} > {}".format(time.asctime(), " ".join(aligner_args), aln_output )
+	print( "###TIME {}\n{} > {}".format(time.asctime(), " ".join(aligner_args), aln_output ), file=errorlog )
 	with open(aln_output, 'w') as msa:
 		subprocess.call(aligner_args, stdout=msa)
-	print >> errorlog, "# alignment of {} completed".format(aln_output), time.asctime()
+	print( "# alignment of {} completed  {}".format(aln_output, time.asctime() ), file=errorlog )
 	if os.path.isfile(aln_output):
 		return aln_output
 	else:
@@ -365,7 +366,7 @@ def run_tree(FASTTREEMP, alignfile, errorlog):
 	'''generate tree from alignment'''
 	tree_output = "{}.tree".format(os.path.splitext(alignfile)[0] )
 	fasttree_args = [FASTTREEMP, "-quiet", alignfile]
-	print >> errorlog, "#TIME {}\n{}".format(time.asctime(), " ".join(fasttree_args) )
+	print( "###TIME {}\n{}".format(time.asctime(), " ".join(fasttree_args) ), file=errorlog )
 	with open(tree_output, 'w') as tree:
 		subprocess.call(fasttree_args, stdout=tree)
 	if os.path.isfile(tree_output):
@@ -412,12 +413,12 @@ def main(argv, wayout, errorlog):
 	FASTTREEMP = os.path.expanduser(args.fasttree)
 
 	starttime = time.time()
-	print >> errorlog, "# Script called as:\n{}".format( ' '.join(sys.argv) )
+	print( "# Script called as:\n{}".format( ' '.join(sys.argv) ), file=errorlog )
 
 	### PROTEIN FILES FOR NEW TAXA
 	if args.taxa is not None:
 		if os.path.isdir(args.taxa[0]):
-			print >> errorlog, "# Finding protein files from directory {}".format(args.taxa[0]), time.asctime()
+			print( "# Finding protein files from directory {}  {}".format( args.taxa[0], time.asctime() ), file=errorlog )
 			globstring = "{}*".format(args.taxa[0])
 			newtaxafiles = glob(globstring)
 		elif os.path.isfile(args.taxa[0]):
@@ -440,12 +441,12 @@ def main(argv, wayout, errorlog):
 	if args.taxa_names:
 		if len(args.taxa_names)!=len(newtaxafiles):
 			for tfile, tname in zip(newtaxafiles, args.taxa_names):
-				print >> errorlog, "{}\t{}".format(tfile, tname)
+				print( "{}\t{}".format(tfile, tname), file=errorlog )
 			raise ValueError("ERROR: number of taxa names ({}) does not match number of files ({}), exiting".format(len(args.taxa_names),len(newtaxafiles) ) )
 		else:
-			print >> errorlog, "# Using {} pairs of files and taxon names".format(len(newtaxafiles))
+			print( "# Using {} pairs of files and taxon names".format(len(newtaxafiles)), file=errorlog )
 			for tfile, tname in zip(newtaxafiles, args.taxa_names):
-				print >> errorlog, "{}\t{}".format(tfile, tname)
+				print( "{}\t{}".format(tfile, tname), file=errorlog )
 	if len(args.taxa_names) != len(set(args.taxa_names)):
 		raise ValueError("ERROR: duplicate taxa names, check -T, exiting")
 
@@ -471,13 +472,13 @@ def main(argv, wayout, errorlog):
 					raise OSError("ERROR: Directory {} exists as a file, cannot create, exiting".format(part_dir) )
 				else:
 					os.mkdir(part_dir)
-					print >> errorlog, "# Creating directory {}".format(part_dir), time.asctime()
+					print( "# Creating directory {}  {}".format(part_dir, time.asctime() ), file=errorlog )
 			# if all names are unique, then continue to split the supermatrix
 			alignfiles = make_alignments(args.alignments[0], args.format, partitions, part_dir, errorlog)
 	### ALIGNMENTS TO BE EXTENDED AS MULTIPLE FILES
 	else: # otherwise treat alignments as normal, either directory or single file
 		if os.path.isdir(args.alignments[0]):
-			print >> errorlog, "# Reading alignments from directory {}".format(args.alignments[0]), time.asctime()
+			print( "# Reading alignments from directory {}  {}".format(args.alignments[0], time.asctime() ), file=errorlog )
 			globstring = "{}*".format(args.alignments[0])
 			alignfiles = glob(globstring)
 		elif os.path.isfile(args.alignments[0]):
@@ -489,9 +490,9 @@ def main(argv, wayout, errorlog):
 	new_aln_dir = os.path.abspath( "{}_{}".format( timestring, args.directory ) )
 	if not os.path.exists(new_aln_dir):
 		os.mkdir(new_aln_dir)
-		print >> errorlog, "# Creating directory {}".format(new_aln_dir), time.asctime()
+		print( "# Creating directory {}  {}".format(new_aln_dir, time.asctime() ), file=errorlog )
 	elif os.path.isdir(new_aln_dir):
-		print >> errorlog, "# Using directory {}".format(new_aln_dir), time.asctime()
+		print( "# Using directory {}  {}".format(new_aln_dir, time.asctime() ), file=errorlog )
 
 	### DIRECTORY FOR HMM RESULTS ###
 	new_hmm_dir = os.path.abspath( "{}_{}".format( timestring, args.hmm_dir ) )
@@ -499,7 +500,7 @@ def main(argv, wayout, errorlog):
 		if os.path.isfile(new_hmm_dir):
 			raise OSError("ERROR: Directory {} exists as a file, cannot create, exiting".format(new_hmm_dir) )
 		else:
-			print >> errorlog, "# Creating directory {}".format(new_hmm_dir), time.asctime()
+			print( "# Creating directory {}  {}".format(new_hmm_dir, time.asctime() ), file=errorlog )
 			os.mkdir(new_hmm_dir)
 
 	### DIRECTORY FOR HMM SELF SEARCH ###
@@ -508,7 +509,7 @@ def main(argv, wayout, errorlog):
 		if os.path.isfile(new_self_dir):
 			raise OSError("ERROR: Directory {} exists as a file, cannot create, exiting".format(new_self_dir) )
 		else:
-			print >> errorlog, "# Creating directory {}".format(new_self_dir), time.asctime()
+			print( "# Creating directory {}  {}".format(new_self_dir, time.asctime() ), file=errorlog )
 			os.mkdir(new_self_dir)
 
 	### MAIN LOOP
@@ -521,14 +522,14 @@ def main(argv, wayout, errorlog):
 	evalueforhmmdict = {} # evalue is calculated once, stored as value where hmm name is key
 	bitlenforhmmdict = {} # bitscore per length is calculated once, hmm name is key
 
-	print >> errorlog, "# Building HMM profiles", time.asctime()
+	print( "# Building HMM profiles  {}".format( time.asctime() ), file=errorlog )
 	if args.ev_threshold is None:
-		print >> errorlog, "# Determining evalue for each HMM, using offset of {:.1e}".format(args.ev_allowance)
+		print( "# Determining evalue for each HMM, using offset of {:.1e}".format(args.ev_allowance), file=errorlog )
 	else:
 		try:
 			args.ev_threshold = float(args.ev_threshold)
 		except ValueError:
-			print >> errorlog, "# WARNING: {} CANNOT BE CONVERTED TO FLOAT, LEAVE --ev-threshold BLANK TO ENABLE AUTO-DETERMINATION OF EVALUE".format(args.ev_threshold)
+			print( "# WARNING: {} CANNOT BE CONVERTED TO FLOAT, LEAVE --ev-threshold BLANK TO ENABLE AUTO-DETERMINATION OF EVALUE".format(args.ev_threshold), file=errorlog )
 			args.ev_threshold = None
 
 	# GET EVALUE AND BPL FOR EACH ALIGNMENT
@@ -539,7 +540,11 @@ def main(argv, wayout, errorlog):
 		hmmprofilelist.append(hmmprofile)
 		# check if threshold was assigned, otherwise determine for each hmm profile
 		# by running hmmsearch against the original proteins
-		filtered_evalue, filtered_bitlen = [args.ev_threshold, args.bpl_threshold] if args.ev_threshold is not None else get_evalue_from_hmm(HMMSEARCH, hmmprofile, alignment, args.processors, new_self_dir, errorlog, args.ev_allowance, args.bpl_allowance)
+		if args.ev_threshold is None:
+			filtered_evalue, filtered_bitlen = get_evalue_from_hmm(HMMSEARCH, hmmprofile, alignment, args.processors, new_self_dir, errorlog, args.ev_allowance, args.bpl_allowance)
+		else: # not advised to use static cutoff, but possible
+			filtered_evalue = args.ev_threshold
+			filtered_bitlen = args.bpl_threshold
 		# either use the static values, or the dynamic values determined above
 		evalueforhmmdict[hmmprofile] = filtered_evalue
 		bitlenforhmmdict[hmmprofile] = filtered_bitlen
@@ -548,11 +553,11 @@ def main(argv, wayout, errorlog):
 	# search each species sequentially, keep matches as SeqRecords in list of lists
 	# to keep memory profile low, sec dict is remade for each species, then all HMMs are run
 	seqrecs_to_add = defaultdict( list ) # key is hmm, value is list of lists of SeqRecords by species
-	print >> errorlog, "# Beginning search for orthologs in new taxa", time.asctime()
+	print( "# Beginning search for orthologs in new taxa  {}".format( time.asctime() ), file=errorlog )
 	speciesnames = args.taxa_names if args.taxa_names else [os.path.basename(newspeciesfile) for f in newtaxafiles]
 	for newspeciesfile in newtaxafiles:
 		seqids_to_add = [] # build list of lists by species
-		print >> errorlog, "# Reading proteins from {} into memory".format(newspeciesfile), time.asctime()
+		print( "# Reading proteins from {} into memory  {}".format(newspeciesfile, time.asctime() ), file=errorlog )
 		seqdict = SeqIO.to_dict( SeqIO.parse(newspeciesfile, "fasta") )
 		for hmmprof in hmmprofilelist:
 			hmmtableout = run_hmmsearch(HMMSEARCH, hmmprof, newspeciesfile, args.processors, args.hmm_results, new_hmm_dir, errorlog)
@@ -587,10 +592,10 @@ def main(argv, wayout, errorlog):
 	### WRITE SUPERMATRIX AND PARTITIONS
 	if args.supermatrix:
 		AlignIO.write(supermatrix, args.supermatrix, "fasta")
-		print >> errorlog, "# Supermatrix written to {}".format(args.supermatrix), time.asctime()
+		print( "# Supermatrix written to {}  {}".format(args.supermatrix, time.asctime() ), file=errorlog )
 		with open("{}.partition.txt".format(args.supermatrix),'w') as pf:
-			print >> pf, ",".join(partitionlist)
-	print >> errorlog, "# Process completed in {:.1f} minutes".format( (time.time()-starttime)/60 )
+			print( ",".join(partitionlist), file=pf )
+	print( "# Process completed in {:.1f} minutes".format( (time.time()-starttime)/60 ), file=errorlog )
 
 if __name__ == "__main__":
 	main(sys.argv[1:], sys.stdout, sys.stderr)
