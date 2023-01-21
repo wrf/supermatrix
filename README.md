@@ -1,5 +1,5 @@
 # supermatrix #
-scripts to add new proteins to an existing alignment using hmms, and simple diagnostics/visualizations
+scripts to add new proteins to an existing alignment using hmms, and some diagnostics/visualizations
 
 The software here is intended to extend existing supermatrix alignments with new taxa, although a number of general purpose programs are also given here. If something does not work, please email me.
 
@@ -99,7 +99,7 @@ The script can be run in the terminal as:
 
 `Rscript draw_matrix_occupancy.R philippe2009_occupancy_matrix.tab`
 
-![philippe2009_occupancy_matrix.png](https://github.com/wrf/supermatrix/blob/master/philippe2009_occupancy_matrix.png)
+![philippe2009_occupancy_matrix.png](https://github.com/wrf/supermatrix/blob/master/images/philippe2009_occupancy_matrix.png)
 
 ## [constant_breaker_plot](https://github.com/wrf/supermatrix/blob/master/constant_breaker_plot.R) ##
 Again, making use of [check_supermatrix_alignments.py](https://github.com/wrf/supermatrix/blob/master/check_supermatrix_alignments.py) with the `-b` mode, this plot shows probably assembly errors (for genome/txome) or annotation errors (for genomes, bad exon/CDS calls). The plot displays the maximum "constant breaker" score for each gene for each taxon. The "constant breaker" score is an accumulated penalty for a long run of amino acids that differ from an overall conserved region. The principle is that sites that are constant in nearly all species are improbably changed in any given taxon, **including fast-evolving taxa**, and this is particularly true [for Glycine or Proline sites](https://github.com/wrf/heteropecilly/tree/master/aa_counts), where a series of "constant-breaking" sites are very likely indicative of technical errors.
@@ -174,7 +174,7 @@ For programs like BLAST or HMMSEARCH, the bitscore, and ultimately the E-value, 
 
 Considering the chart below, each point represents a self-hit from the HMM profile against the original dataset that was used to make the profile. The longest proteins are dark blue (~700AAs) and the shortest ones are red (~100AAs), with a gradient in between. Proteins that are 80% of the length of the alignment are indicated by the dark circles.
 
-![philippe2009_w_coral_selfhits.png](https://github.com/wrf/supermatrix/blob/master/philippe2009_w_coral_selfhits.png)
+![philippe2009_w_coral_selfhits.png](https://github.com/wrf/supermatrix/blob/master/images/philippe2009_w_coral_selfhits.png)
 
 It is immediately evident that the highest E-values belong to the longest proteins. Thus, it is clear that a single value cannot be used as a filter for all partitions in a supermatrix. However, even for a long protein, it is clear that many proteins in the original set have E-values substantially lower than the max. These are partial proteins that are kept in the matrix. Thus, the threshold for each partition must be determined primarily by the long proteins, not the lowest value.
 
