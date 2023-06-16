@@ -4,7 +4,7 @@
 # v1.6 2023-01-20 python3 update and some changes to log output
 
 '''
-add_taxa_to_align.py v1.6 2023-01-20
+add_taxa_to_align.py v1.6 2023-02-01
     add new taxa to an existing untrimmed alignment
     requires Bio Python library
     get hmmbuild and hmmscan (from hmmer package at http://hmmer.org/)
@@ -206,14 +206,14 @@ def hmmtable_to_seqids(hmmtable, evaluecutoff, bitlencutoff, seqdict, verbose ):
 		if verbose:
 			print( "# CANDIDATE {}: EVALUE {}, BITS {}, BpL {}".format( targetname, evalue, bitscore, bitsperlen ), file=sys.stderr )
 		if targetname in seqids_to_keep: # since multiple domains are allowed, keep highest scoring one
-			if seqids_to_keep.get(targetname,0) < bitsperlen:
-				seqids_to_keep[targetname] = bitsperlen
+			if seqids_to_keep.get(targetname,0) < bitscore:
+				seqids_to_keep[targetname] = bitscore
 		else:
-			seqids_to_keep[targetname] = bitsperlen
-	# sort IDs by highest bits-per-length
+			seqids_to_keep[targetname] = bitscore
+	# sort IDs by value, in this case bitscore
 	sorted_ids = [ k for k,v in sorted(seqids_to_keep.items(), key=lambda x: x[1], reverse=True ) ]
 	if seqids_to_keep: # meaning if any hits
-		print( "# retaining {}/{} seqs from {}, highest bits/len is {:.4f} for {}".format( len(seqids_to_keep) , hitcounter, os.path.basename(hmmtable), maxbpl, sorted_ids[0] ), file=sys.stderr )
+		print( "# retaining {}/{} seqs from {}, highest bits is {:.4f} for {}".format( len(seqids_to_keep) , hitcounter, os.path.basename(hmmtable), maxbpl, sorted_ids[0] ), file=sys.stderr )
 		if maxbpl != seqids_to_keep[sorted_ids[0]]: # in case best reasonable seq is not the max
 			print( "# WARNING: MAX {} DOES NOT MATCH TOP SEQ {} WITH {}".format( maxbpl, sorted_ids[0] , seqids_to_keep[sorted_ids[0]] ), file=sys.stderr )
 	else: # meaning no hits
@@ -308,13 +308,14 @@ def collect_sequences(unalignednewtaxa, alignment, hitlistolists, lengthcutoff, 
 	speciescounts = defaultdict(int) # key is species, value is number of written seqs per species
 	median = unalign_sequences(unalignednewtaxa, alignment, notrim, calculatemedian=True, removeempty=False)
 	with open(unalignednewtaxa,'a') as notaln:
+		print( "###COLLECT:{}".format(os.path.basename(alignment)), file=sys.stderr )
 		# hitlistolists is a list of lists, so that order of species is preserved
 		for i,hitlist in enumerate(hitlistolists):
 			writeout = 0
 			if not hitlist:
 				print( "# NO HITS FOR {} IN {}".format(speciesnames[i], os.path.basename(alignment) ), file=sys.stderr )
-				print >> notaln, ">{}".format(speciesnames[i])
-				continue
+				print( ">{}".format(speciesnames[i]), file=notaln)
+				continue # no hits so skip to next taxon
 			for seqrec in hitlist: # sublist, each item is a SeqRecord object
 				old_id = str(seqrec.id)
 				if writeout==maxhits: # if already have enough candidates
@@ -323,15 +324,15 @@ def collect_sequences(unalignednewtaxa, alignment, hitlistolists, lengthcutoff, 
 					if keep_old_ids is False: # should be False by default
 						if seqrec.id==speciesnames[i]: # check if seq was already used, so dict entry was renamed
 							print( "WARNING: REDUNDANT SEQ {} FOR {}".format(seqrec.name, os.path.basename(alignment) ), file=sys.stderr )
+						seqrec.description = old_id
 						seqrec.id = str(speciesnames[i])
-						seqrec.description = ""
 					print( "# using seq {} for {}".format( old_id, speciesnames[i] ), file=sys.stderr )
 					notaln.write( seqrec.format("fasta") )
 					writeout += 1
 				else: # meaning too short
 					print( "# SEQ {} TOO SHORT FOR {} IN {}".format(seqrec.name, speciesnames[i], os.path.basename(alignment) ), file=sys.stderr )
 			if writeout==0: # all hits missed the cut or had no hits, give a dummy entry
-				print >> notaln, ">{}".format(speciesnames[i])
+				print( ">{}".format(speciesnames[i]), file=notaln)
 				print( "# ALL HITS TOO SHORT FOR {} IN {}".format(speciesnames[i], os.path.basename(alignment) ), file=sys.stderr )
 	# no return
 
@@ -339,7 +340,7 @@ def run_mafft(MAFFT, rawseqsfile, errorlog):
 	'''generate multiple sequence alignment from fasta and return MSA filename'''
 	aln_output = "{}.aln".format(os.path.splitext(rawseqsfile)[0] )
 	aligner_args = [MAFFT, "--maxiterate", "1000", "--localpair", "--quiet", rawseqsfile]
-	print( "#TIME {}\n{} > {}".format(time.asctime(), " ".join(aligner_args), aln_output ), file=errorlog )
+	print( "###TIME {}\n{} > {}".format(time.asctime(), " ".join(aligner_args), aln_output ), file=errorlog )
 	with open(aln_output, 'w') as msa:
 		subprocess.call(aligner_args, stdout=msa)
 	print( "# alignment of {} completed  {}".format(aln_output, time.asctime() ), file=errorlog )
