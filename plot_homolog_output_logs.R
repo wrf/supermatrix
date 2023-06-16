@@ -1,6 +1,6 @@
 # plot homolog output logs
 #
-# last modified 2022-05-23
+# last modified 2022-12-02
 #
 # based on output files from makehomologs.py
 # https://bitbucket.org/wrf/sequences/src/master/makehomologs.py
@@ -33,6 +33,9 @@ prots_no_hits = as.integer(total_prots_by_sp$V3) - as.integer(blast_hits_by_sp$V
 hits_no_clusters = as.integer(blast_hits_by_sp$V3) - as.integer(genes_in_clusters_by_sp$V3)
 hits_w_clusters = as.integer(genes_in_clusters_by_sp$V3) - as.integer(ortho_counts_by_sp$V3)
 ortho_clusters = as.integer(ortho_counts_by_sp$V3)
+
+print( paste(sum(as.integer(total_prots_by_sp$V3)),"total proteins in the analysis") )
+print( paste(sum(prots_no_hits), "proteins had no blast hits" ) )
 
 #
 input_cluster_file = args[2]
@@ -91,7 +94,8 @@ if ( nrow(total_prots_by_sp)==nrow(genes_in_clusters_by_sp) ) {
            main=paste("Total counts of prots, those with hits, those in orthogroups for",species_count,"species"),
            col=c("#0000b3", "#9ecae1","#8c6bb1","#7f2704"), border = bordcolor,
            cex.axis=1.4, cex.lab=1.4 , names.arg=barplot_names, las=bar_las)
-  legend(x="bottom", legend=c("Single-copy", "Multi-copy", "Not clustered", "No blast"),
+  # here could also go on bottom, but often better fits on top of plot
+  legend(x="top", legend=c("Single-copy", "Multi-copy", "Not clustered", "No blast"),
          col=c("#0000b3", "#9ecae1","#8c6bb1","#7f2704"), pch=15, pt.cex=2, horiz=TRUE, xpd = TRUE )
 } else {
   barplot( as.integer(genes_in_clusters_by_sp$V3) , ylab="Number of genes in clusters", 
