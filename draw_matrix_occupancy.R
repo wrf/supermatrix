@@ -1,12 +1,13 @@
 #!/usr/bin/env Rscript
 # generate figure from phylogenetic occupancy matrix
 # v1 created 2017-08-03
+# 2025-11-14 can read in gzip
 
 args = commandArgs(trailingOnly=TRUE)
 
 inputfile = args[1]
 #inputfile = "~/git/supermatrix/matrix/philippe2009_occupancy_matrix.tab"
-outputfile = gsub("([\\w/]+)\\....$","\\1.pdf",inputfile,perl=TRUE)
+outputfile = gsub("([\\w/]+)\\....$","\\1.pdf",gsub(".gz$","",inputfile,perl=TRUE),perl=TRUE)
 
 # read table assuming tab delimited
 occmatrix = read.table(inputfile,header=TRUE, sep="\t",row.names=1)
